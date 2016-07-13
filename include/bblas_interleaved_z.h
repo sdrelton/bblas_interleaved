@@ -1,9 +1,6 @@
 #ifndef BBLAS_Z_INTL_H
 #define BBLAS_Z_INTL_H
 
-#include "bblas_types.h"
-#include "bblas_macros.h"
-
 #define COMPLEX
 
 /*

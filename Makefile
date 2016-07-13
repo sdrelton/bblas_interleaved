@@ -35,27 +35,30 @@ LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
 
 
 
-BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c
+BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
+                 bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
-TEST_SRC_LIST = test_zgemm.c
+TEST_SRC_LIST = test_zgemm.c test_dgemm.c
 TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
 
 SOURCES = $(BBLAS_SRC) $(TEST_SRC)
-SOURCES_Z = $(SOURCES)
-OBJECTS_Z = $(SOURCES_Z:.c=.o)
+OBJECTS = $(SOURCES:.c=.o)
 
 all:
-	@echo "$(SOURCES)"
-	@echo "$(OBJECTS_Z)"
 	make test_zgemm
+	make test_dgemm
 
 .DEFAULT_GOAL := all
 
-test_zgemm: $(OBJECTS_Z)
+test_zgemm: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_zgemm.c -o $(BBLAS_TEST_DIR)/test_zgemm.o
-	$(CC) $(OBJECTS_Z) $(BBLAS_TEST_DIR)/test_zgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_zgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+
+test_dgemm: $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dgemm.c -o $(BBLAS_TEST_DIR)/test_dgemm.o
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
 .c.o:
 	$(CC) $(CFLAGS) $(DEPS) $<   -o $@

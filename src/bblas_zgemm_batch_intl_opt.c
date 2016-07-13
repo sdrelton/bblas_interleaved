@@ -1,8 +1,5 @@
-#include <complex.h>
 #include "bblas_interleaved.h"
 #include <omp.h>
-
-#define COMPLEX
 
 // Assumes interleaved in column major order
 
@@ -259,5 +256,3 @@ void bblas_zgemm_batch_intl_opt(
 	}
 	info = BBLAS_SUCCESS;
 }
-
-#undef COMPLEX
