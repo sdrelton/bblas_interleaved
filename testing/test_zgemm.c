@@ -12,9 +12,16 @@
 #define M 8
 #define N 8
 #define K 8
-#define BATCH_COUNT 50000
+#define BATCH_COUNT 1000
 
-#define CACHECLEARSIZE = 5000
+#define CACHECLEARSIZE 1000
+#define clearcache() cblas_zgemm(colmaj, transA, transB, \
+								 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
+								 CBLAS_SADDR(alpha), bigA, CACHECLEARSIZE, \
+                                 bigA, CACHECLEARSIZE, 		\
+								 CBLAS_SADDR(beta),	\
+								 bigC, CACHECLEARSIZE)
+
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
 
@@ -46,7 +53,7 @@ int seed[4] = {2, 4, 1, 7}; // random seed
 int colmaj = BblasColMajor; // Use column major ordering
 
 // Needed to generate random matrices using LAPACKE_zlagge
-const int len = max(M, max(N, K));
+const int len = max(M, max(N, max(CACHECLEARSIZE, K)));
 double *scalar = (double*) malloc (sizeof(double) * len);
 double val;
 val = 1.0;
@@ -56,8 +63,18 @@ for (int i = 0; i < len; i++)
 	val += 1;
 }
 
+printf("Generating random matrices to clear cache\n");
+// Generate matrices to clear cache
+int bigsize = CACHECLEARSIZE;
+BBLAS_Complex64_t* bigA =
+	(BBLAS_Complex64_t*) malloc(sizeof(BBLAS_Complex64_t) * bigsize*bigsize);
+BBLAS_Complex64_t* bigC =
+	(BBLAS_Complex64_t*) malloc(sizeof(BBLAS_Complex64_t) * bigsize*bigsize);
+LAPACKE_zlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigA, bigsize, seed);
+LAPACKE_zlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigC, bigsize, seed);
+
+printf("Generating random matrices for computation\n");
 // Now create pointer-to-pointer batch of random matrices
-printf("Generating random matrices\n");
 BBLAS_Complex64_t **Ap2p =
 	(BBLAS_Complex64_t**) malloc(sizeof(BBLAS_Complex64_t*)*BATCH_COUNT);
 BBLAS_Complex64_t **Bp2p =
@@ -142,6 +159,10 @@ for (int pos = 0; pos < M*N; pos++)
 
 memcpy(arrayCorig, arrayC, sizeof(BBLAS_Complex64_t)*M*N*BATCH_COUNT);
 
+// Clear cache
+printf("Clearing cache\n");
+clearcache();
+
 // Compute result using CBLAS
 printf("Computing results using CBLAS (OpenMP)\n");
 // Get prior time
@@ -171,6 +192,10 @@ timediff = time - timediff;
 printf("CBLAS Time = %f us\n", timediff);
 printf("CBLAS Perf = %f GFlop/s\n\n", flops / timediff / 1000);
 
+// Clear cache
+printf("Clearing cache\n");
+clearcache();
+
 // Compute result using interleaved
 printf("Computing result using interleaved format\n");
 // Get prior time
@@ -189,6 +214,10 @@ gettime();
 timediff = time - timediff;
 printf("INTL Time = %f us\n", timediff);
 printf("INTL Perf = %f GFlop/s\n\n", flops / timediff / 1000);
+
+// Clear cache
+printf("Clearing cache\n");
+clearcache();
 
 // Interleaved with OpenMP
 printf("Computing result using interleaved format (OpenMP)\n");
