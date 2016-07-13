@@ -54,11 +54,7 @@ void bblas_zgemm_batch_intl_opt(
 				{
 					arrayC[j*strideC*M + i*strideC + idx] *=
 						beta;
-				}
-				for (int k = 0; k < K; k++)
-				{
-                    #pragma omp parallel for
-					for (int idx = 0; idx < batch_count; idx++)
+					for (int k = 0; k < K; k++)
 					{
 						arrayC[j*strideC*M + i*strideC + idx] +=
 							alpha*
