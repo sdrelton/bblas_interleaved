@@ -10,10 +10,10 @@ void bblas_dgemm_batch_intl_opt(
 	const int N,
 	const int K,
 	const double alpha,
-	const double *arrayA, const int strideA,
-	const double *arrayB, const int strideB,
+	const double *__restrict__ arrayA, const int strideA,
+	const double *__restrict__ arrayB, const int strideB,
 	const double beta,
-	double *arrayC, const int strideC,
+	double * arrayC, const int strideC,
 	const int batch_count, int info)
 {
 	// Error checks go here
@@ -40,24 +40,49 @@ void bblas_dgemm_batch_intl_opt(
 
 	if (transA == BblasNoTrans && transB == BblasNoTrans)
 	{
+		/* // A: no transpose */
+/* 		// B: no transpose */
+/* 		for (int i = 0; i < M; i++) */
+/* 		{ */
+/* 			for (int j = 0; j < N; j++) */
+/* 			{ */
+/* #pragma omp parallel for */
+/* 				for (int idx = 0; idx < batch_count; idx++) */
+/* 				{ */
+/* 					arrayC[j*strideC*M + i*strideC + idx] *= */
+/* 						beta; */
+/* 					for (int k = 0; k < K; k++) */
+/* 					{ */
+/* 						arrayC[j*strideC*M + i*strideC + idx] += */
+/* 							alpha* */
+/* 							arrayA[k*strideA*M + i*strideA + idx]* */
+/* 							arrayB[j*strideB*K + k*strideB + idx]; */
+/* 					} */
+/* 				} */
+/* 			} */
+/* 		} */
+		// Try vectorized version
 		// A: no transpose
 		// B: no transpose
 		for (int i = 0; i < M; i++)
 		{
 			for (int j = 0; j < N; j++)
 			{
-#pragma omp parallel for
-				for (int idx = 0; idx < batch_count; idx++)
+				for (int k = 0; k < K; k++)
 				{
-					arrayC[j*strideC*M + i*strideC + idx] *=
-						beta;
-					for (int k = 0; k < K; k++)
+					int startA = k*strideA*M + i*strideA;
+					int startB = j*strideB*K + k*strideB;
+					int startC = j*strideC*M + i*strideC;
+                    #pragma omp parallel for
+					for (int idx = 0; idx < batch_count; idx++)
 					{
-						arrayC[j*strideC*M + i*strideC + idx] +=
-							alpha*
-							arrayA[k*strideA*M + i*strideA + idx]*
-							arrayB[j*strideB*K + k*strideB + idx];
-					}
+					    if (k == 0)
+						{
+					        arrayC[startC + idx] *= beta;
+				        }
+						arrayC[startC + idx] += alpha*
+							(arrayA[startA + idx] * arrayB[startB + idx]);
+   				    }
 				}
 			}
 		}
