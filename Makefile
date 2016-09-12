@@ -1,11 +1,11 @@
-BBLAS_BASE_DIR = /home/srelton/NLAFET/bblas_interleaved
+BBLAS_BASE_DIR = /home/srelton/bblas_interleaved
 BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
 BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
 LDFLAGS = -fopenmp
-CC = gcc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -msse4 -mavx2 -mtune=native -march=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+CC = icc
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
 DEPS += -m64 -I${MKLROOT}/include
 
 # BLAS libraries
@@ -26,7 +26,7 @@ BLAS_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLRO
 #LAPACKE_LIB     = -L$(LAPACKE_DIR)/lib -llapacke -llapack
 #LAPACKE_INC     = -I$(LAPACKE_DIR)/include
 
-DEPS += $(LAPACKE_INC) $(LAPACK_INC) $(CBLAS_INC)
+#DEPS += $(LAPACKE_INC) $(LAPACK_INC) $(CBLAS_INC)
 
 LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
 
@@ -53,7 +53,6 @@ test_zgemm: $(OBJECTS)
 	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_zgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
 test_dgemm: $(OBJECTS)
-	$(CC) $(CFLAGS) -S $(DEPS) $(BBLAS_SRC_DIR)/bblas_dgemm_batch_intl_opt_cpy.c -o $(BBLAS_SRC_DIR)/bblas_dgemm_batch_intl_opt.s
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dgemm.c -o $(BBLAS_TEST_DIR)/test_dgemm.o
 	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
