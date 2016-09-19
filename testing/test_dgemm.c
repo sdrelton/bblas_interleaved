@@ -8,10 +8,11 @@
 #include <omp.h>
 #include <mkl.h>
 
-#define M 2
-#define N 2
-#define K 2
-#define BATCH_COUNT 100000
+#define M 3
+#define N 3
+#define K 3
+#define BATCH_COUNT 10000
+#define BLOCK_SIZE 512
 
 #define CACHECLEARSIZE 1000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \
@@ -158,6 +159,117 @@ for (int pos = 0; pos < M*N; pos++)
 
 memcpy(arrayCorig, arrayC, sizeof(double)*M*N*BATCH_COUNT);
 
+// Create block interleaved
+printf("Converting to block interleaved format - block_size = %d \n\n", BLOCK_SIZE);
+int blocksrequired = batch_count / BLOCK_SIZE;
+int remainder = 0;
+if (batch_count % BLOCK_SIZE != 0)
+{
+	blocksrequired += 1;
+	remainder = batch_count % BLOCK_SIZE;
+}
+double *arrayAblk = (double*)
+	malloc(sizeof(double) * M*K*blocksrequired*BLOCK_SIZE);
+double *arrayBblk = (double*)
+	malloc(sizeof(double) * K*N*blocksrequired*BLOCK_SIZE);
+double *arrayCblk = (double*)
+	malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
+int startpos;
+
+// Allocate A block interleaved
+ctr = 0;
+for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+{
+	if ((blkidx == blocksrequired - 1) && (remainder != 0))
+	{
+		// Remainders
+		for (int pos = 0; pos < M*K; pos++)
+		{
+			for (int idx = 0; idx < remainder; idx++)
+			{
+				arrayAblk[ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+			ctr += BLOCK_SIZE - remainder;
+		}
+	}
+	else
+	{
+		for (int pos = 0; pos < M*K; pos++)
+		{
+			for (int idx = 0; idx < BLOCK_SIZE; idx++)
+			{
+				arrayAblk[ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+		}
+	}
+}
+
+// Allocate B block interleaved
+for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+{
+	startpos = blkidx * BLOCK_SIZE * K*N;
+	if (blkidx == blocksrequired - 1 && remainder != 0)
+	{
+		// Remainders
+		ctr = 0;
+		for (int pos = 0; pos < K*N; pos++)
+		{
+			for (int idx = 0; idx < remainder; idx++)
+			{
+				arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+			ctr += BLOCK_SIZE - remainder;
+		}
+	}
+	else
+	{
+		ctr = 0;
+		for (int pos = 0; pos < K*N; pos++)
+		{
+			for (int idx = 0; idx < BLOCK_SIZE; idx++)
+			{
+				arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+		}
+	}
+}
+
+// Allocate C block interleaved
+for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+{
+	startpos = blkidx * BLOCK_SIZE * M*N;
+	if (blkidx == blocksrequired - 1 && remainder != 0)
+	{
+		// Remainders
+		ctr = 0;
+		for (int pos = 0; pos < M*N; pos++)
+		{
+			for (int idx = 0; idx < remainder; idx++)
+			{
+				arrayCblk[startpos + ctr] = Cp2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+			ctr += BLOCK_SIZE - remainder;
+		}
+	}
+	else
+	{
+		ctr = 0;
+		for (int pos = 0; pos < M*N; pos++)
+		{
+			for (int idx = 0; idx < BLOCK_SIZE; idx++)
+			{
+				arrayCblk[startpos + ctr] = Cp2p[blkidx * BLOCK_SIZE + idx][pos];
+				ctr++;
+			}
+		}
+	}
+}
+
 // Clear cache
 printf("Clearing cache\n");
 clearcache();
@@ -238,6 +350,29 @@ timediff = time - timediff;
 printf("INTL_OPT Time = %f us\n", timediff);
 printf("INTL_OPT Perf = %f GFlop/s\n\n", flops / timediff / 1000);
 
+// Clear cache
+printf("Clearing cache\n");
+clearcache();
+
+// Block Interleaved with OpenMP
+printf("Computing result using block interleaved format (OpenMP)\n");
+// Get prior time
+gettime();
+timediff = time;
+bblas_dgemm_batch_blkintl(
+	transA, transB,
+	M, N, K,
+	alpha,
+	(const double*) arrayAblk,
+	(const double*) arrayBblk,
+	beta,
+	arrayCblk, BLOCK_SIZE,
+	batch_count, info);
+gettime();
+timediff = time - timediff;
+printf("BLKINTL Time = %f us\n", timediff);
+printf("BLKINTL Perf = %f GFlop/s\n\n", flops / timediff / 1000);
+
 // Calculate difference between results
 printf("Calculating l1 difference between results\n");
 double norm = 0;
@@ -253,12 +388,49 @@ for (int j = 0; j < N; j++)
 		}
 	}
 }
-printf("norm = %f\n", norm);
+printf("INTL norm = %f\n", norm);
+
+norm = 0;
+for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+{
+	startpos = blkidx * BLOCK_SIZE * M*N;
+	if (blkidx == blocksrequired - 1 && remainder != 0)
+	{
+		// Remainders
+		ctr = 0;
+		for (int pos = 0; pos < M*N; pos++)
+		{
+			for (int idx = 0; idx < remainder; idx++)
+			{
+				norm += cabs(arrayCblk[startpos + ctr] - Cp2p[blkidx * BLOCK_SIZE + idx][pos]);
+				ctr++;
+			}
+			ctr += BLOCK_SIZE - remainder;
+		}
+	}
+	else
+	{
+		ctr = 0;
+		for (int pos = 0; pos < M*N; pos++)
+		{
+			for (int idx = 0; idx < BLOCK_SIZE; idx++)
+			{
+				norm += cabs(arrayCblk[startpos + ctr] - Cp2p[blkidx * BLOCK_SIZE + idx][pos]);
+				ctr++;
+			}
+		}
+	}
+}
+printf("BLOCK INTL norm = %f\n", norm);
 
 // Free memory
 free(arrayA);
 free(arrayB);
 free(arrayC);
+free(arrayAblk);
+free(arrayBblk);
+free(arrayCblk);
+free(arrayCorig);
 for (int idx = 0; idx < batch_count; idx++)
 {
 	free(Ap2p[idx]);

@@ -33,4 +33,17 @@ void bblas_dgemm_batch_intl_opt(
 	double *arrayC, const int strideC,
 	const int batch_count, int info);
 
-#endif // BBLAS_Z_INTL_H
+void bblas_dgemm_batch_blkintl(
+	const enum BBLAS_TRANS transA,
+	const enum BBLAS_TRANS transB,
+	const int M,
+	const int N,
+	const int K,
+	const double alpha,
+	const double *arrayA,
+	const double *arrayB,
+	const double beta,
+	double *arrayC, const int block_size,
+	const int batch_count, int info);
+
+#endif // BBLAS_D_INTL_H
