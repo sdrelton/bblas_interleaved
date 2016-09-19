@@ -24,7 +24,6 @@ void bblas_dgemm_batch_blkintl(
 		numblocks += 1;
 		remainder = (batch_count % block_size);
 	}
-	printf("Got block numbers and remainder = %d\n", remainder);
 
 	if (transA == BblasNoTrans && transB == BblasNoTrans)
 	{

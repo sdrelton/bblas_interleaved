@@ -40,7 +40,7 @@ BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
-TEST_SRC_LIST = test_zgemm.c test_dgemm.c
+TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c
 TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
 
 SOURCES = $(BBLAS_SRC) $(TEST_SRC)
@@ -49,6 +49,7 @@ OBJECTS = $(SOURCES:.c=.o)
 all:
 	make test_zgemm
 	make test_dgemm
+	make tune_dgemm
 
 .DEFAULT_GOAL := all
 
@@ -62,6 +63,10 @@ test_zgemm: $(OBJECTS)
 test_dgemm: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dgemm.c -o $(BBLAS_TEST_DIR)/test_dgemm.o
 	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+
+tune_dgemm: $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.c -o $(BBLAS_TEST_DIR)/tune_blk_dgemm.o
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
 clean:
 	rm */*.o
