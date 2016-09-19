@@ -8,11 +8,11 @@
 #include <omp.h>
 #include <mkl.h>
 
-#define M 3
-#define N 3
-#define K 3
+#define M 7
+#define N 7
+#define K 7
 #define BATCH_COUNT 10000
-#define BLOCK_SIZE 512
+#define BLOCK_SIZE 128
 
 #define CACHECLEARSIZE 1000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \

@@ -7,8 +7,8 @@
 #include <mkl.h>
 #include <unistd.h>
 
-#define BATCH_COUNT 1000
-#define CACHECLEARSIZE 1000
+#define BATCH_COUNT 10000
+#define CACHECLEARSIZE 10000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \
 								 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
 								 (alpha), bigA, CACHECLEARSIZE, \
@@ -18,7 +18,7 @@
 
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
-#define TIMINGRUNS 10
+#define TIMINGRUNS 20
 
 int main()
 {
@@ -27,7 +27,7 @@ double time;
 double timediff;
 struct timeval tv;
 
-for (int matsize = 2; matsize <= 10; matsize++)
+for (int matsize = 2; matsize <= 20; matsize++)
 {
 int M = matsize;
 int N = matsize;
@@ -406,6 +406,7 @@ for (int run = 0; run < TIMINGRUNS; run++)
 {
 	avgtime += timings[run];
 }
+avgtime /= TIMINGRUNS;
 if (avgtime < besttime)
 {
 	besttime = avgtime;
