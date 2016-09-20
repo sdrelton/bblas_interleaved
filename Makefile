@@ -1,14 +1,14 @@
-BBLAS_BASE_DIR = /home/srelton/bblas_interleaved
+BBLAS_BASE_DIR = /home/srelton/NLAFET/bblas_interleaved
 BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
 BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
 
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
 LDFLAGS = -fopenmp
-#CC = gcc
-#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
-CC = icc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+CC = gcc
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+#CC = icc
+#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
 DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
 
 # BLAS libraries

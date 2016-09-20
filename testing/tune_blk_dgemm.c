@@ -8,17 +8,19 @@
 #include <unistd.h>
 
 #define BATCH_COUNT 10000
-#define CACHECLEARSIZE 10000
-#define clearcache() cblas_dgemm(colmaj, transA, transB, \
-								 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
-								 (alpha), bigA, CACHECLEARSIZE, \
-                                 bigA, CACHECLEARSIZE, 		\
-								 (beta),	\
-								 bigC, CACHECLEARSIZE)
+#define CACHECLEARSIZE 100
+#define clearcache()    mkl_set_num_threads(68);\
+	                    cblas_dgemm(colmaj, transA, transB,\
+						CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
+						(alpha), bigA, CACHECLEARSIZE,\
+                        bigA, CACHECLEARSIZE,\
+						(beta),\
+						bigC, CACHECLEARSIZE);\
+						mkl_set_num_threads(1)
 
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
-#define TIMINGRUNS 20
+#define TIMINGRUNS 1
 
 int main()
 {
@@ -81,6 +83,8 @@ double **Bp2p =
 	(double**) malloc(sizeof(double*)*BATCH_COUNT);
 double **Cp2p =
 	(double**) malloc(sizeof(double*)*BATCH_COUNT);
+double **Cp2pcpy =
+	(double**) malloc(sizeof(double*)*BATCH_COUNT);
 
 for (int idx = 0; idx < BATCH_COUNT; idx++)
 {
@@ -94,6 +98,9 @@ for (int idx = 0; idx < BATCH_COUNT; idx++)
 	// Generate C
 	Cp2p[idx] = (double*) malloc(sizeof(double) * M*N);
 	LAPACKE_dlagge(colmaj, M, N, M-1, N-1, scalar, Cp2p[idx], M, seed);
+	// Generate Ccpy
+	Cp2pcpy[idx] = (double*) malloc(sizeof(double) * M*N);
+	memcpy(Cp2pcpy[idx], Cp2p[idx], sizeof(double) * M*N);
 }
 free(scalar);
 //free(seed);
@@ -201,6 +208,48 @@ for (int run = 0; run < TIMINGRUNS; run++)
 avgtime /= TIMINGRUNS;
 printf("CBLAS Time = %f us\n", avgtime);
 printf("CBLAS Perf = %f GFlop/s\n\n", flops / avgtime / 1000);
+
+
+// Compute result using MKL
+printf("Computing results using MKL batch GEMM\n");
+// Get prior time
+for (int run = 0; run < TIMINGRUNS; run++)
+{
+	// Clear cache
+	clearcache();
+	mkl_set_num_threads(68);
+	gettime();
+	timediff = time;
+	cblas_dgemm_batch(
+		BblasColMajor,
+		&transA,
+		&transB,
+		&M,
+		&N,
+		&K,
+		&alpha,
+		Ap2p,
+		&lda,
+		Bp2p,
+		&ldb,
+		&beta,
+		Cp2pcpy,
+		&ldc,
+		1, &batch_count);
+	gettime();
+	timediff = time - timediff;
+	timings[run] = timediff;
+	mkl_set_num_threads(1);
+}
+avgtime = 0;
+for (int run = 0; run < TIMINGRUNS; run++)
+{
+	avgtime += timings[run];
+}
+avgtime /= TIMINGRUNS;
+printf("MKL Time = %f us\n", avgtime);
+printf("MKL Perf = %f GFlop/s\n\n", flops / avgtime / 1000);
+
 
 // Compute result using interleaved
 printf("Computing result using interleaved format\n");
@@ -431,10 +480,12 @@ for (int idx = 0; idx < batch_count; idx++)
 	free(Ap2p[idx]);
 	free(Bp2p[idx]);
 	free(Cp2p[idx]);
+	free(Cp2pcpy[idx]);
 }
 free(Ap2p);
 free(Bp2p);
 free(Cp2p);
+free(Cp2pcpy);
 
 printf("\n\n\n");
 
