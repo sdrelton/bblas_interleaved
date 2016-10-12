@@ -40,7 +40,7 @@ BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
-TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c
+TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c
 TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
 
 SOURCES = $(BBLAS_SRC) $(TEST_SRC)
@@ -50,6 +50,7 @@ all:
 	make test_zgemm
 	make test_dgemm
 	make tune_dgemm
+	make block_size_effect
 
 .DEFAULT_GOAL := all
 
@@ -68,6 +69,14 @@ tune_dgemm: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.c -o $(BBLAS_TEST_DIR)/tune_blk_dgemm.o
 	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
+block_size_effect: $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/block_size_effect.c -o $(BBLAS_TEST_DIR)/block_size_effect.o
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/block_size_effect.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+
+
 clean:
 	rm */*.o
-	rm */testzgemm
+	rm */test_zgemm
+	rm */test_dgemm
+	rm */tune_dgemm
+	rm */block_size_effect
