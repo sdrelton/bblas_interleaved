@@ -1,4 +1,4 @@
-BBLAS_BASE_DIR = /home/srelton/NLAFET/bblas_interleaved
+BBLAS_BASE_DIR = /home/samuelrelton/bblas_interleaved
 BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
 BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include

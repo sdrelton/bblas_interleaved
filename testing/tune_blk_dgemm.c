@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #define BATCH_COUNT 10000
-#define CACHECLEARSIZE 100
+#define CACHECLEARSIZE 2000
 #define clearcache()    mkl_set_num_threads(68);\
 	                    cblas_dgemm(colmaj, transA, transB,\
 						CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
@@ -20,7 +20,7 @@
 
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
-#define TIMINGRUNS 1
+#define TIMINGRUNS 10
 
 int main()
 {
@@ -317,7 +317,7 @@ printf("INTL_OPT Perf = %f GFlop/s\n\n", flops / timediff / 1000);
 printf("Computing result using block interleaved format (OpenMP)\n");
 float besttime = 1e12;
 int bestblock_size = 0;
-for (int block_size = 2; block_size < batch_count; block_size *= 2)
+for (int block_size = 8; block_size <= 512; block_size += 8)
 {
 // Create block interleaved
 int blocksrequired = batch_count / block_size;

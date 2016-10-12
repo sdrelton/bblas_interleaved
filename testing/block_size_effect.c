@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #define BATCH_COUNT 10000
-#define CACHECLEARSIZE 1000
+#define CACHECLEARSIZE 2000
 #define clearcache()    mkl_set_num_threads(20);\
 	                    cblas_dgemm(colmaj, transA, transB,\
 						CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
@@ -21,7 +21,7 @@
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
 #define TIMINGRUNS 10
-#define MATSIZE 4
+#define MATSIZE 8
 
 int main()
 {

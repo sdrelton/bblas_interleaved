@@ -9,10 +9,10 @@
 #include <omp.h>
 #include <mkl.h>
 
-#define M 8
-#define N 8
-#define K 8
-#define BATCH_COUNT 1000
+#define M 3
+#define N 3
+#define K 3
+#define BATCH_COUNT 50000
 
 #define CACHECLEARSIZE 1000
 #define clearcache() cblas_zgemm(colmaj, transA, transB, \
