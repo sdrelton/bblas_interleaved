@@ -1,4 +1,4 @@
-BBLAS_BASE_DIR = /home/samuelrelton/bblas_interleaved
+BBLAS_BASE_DIR = /home/mawussi/NLAFET/bblas_interleaved
 BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
 BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
@@ -36,11 +36,11 @@ LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
 
 BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
                  bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c \
-				 bblas_dgemm_batch_blkintl.c
+				 bblas_dgemm_batch_blkintl.c bblas_dtrsm_batch_intl.c
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
-TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c
+TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c test_dtrsm.c
 TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
 
 SOURCES = $(BBLAS_SRC) $(TEST_SRC)
@@ -51,6 +51,7 @@ all:
 	make test_dgemm
 	make tune_dgemm
 	make block_size_effect
+	make test_dtrsm
 
 .DEFAULT_GOAL := all
 
@@ -73,6 +74,10 @@ block_size_effect: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/block_size_effect.c -o $(BBLAS_TEST_DIR)/block_size_effect.o
 	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/block_size_effect.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
+test_dtrsm: $(OBJECTS)
+	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dtrsm.c -o $(BBLAS_TEST_DIR)/test_dtrsm.o
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dtrsm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+
 
 clean:
 	rm */*.o
@@ -80,3 +85,4 @@ clean:
 	rm */test_dgemm
 	rm */tune_dgemm
 	rm */block_size_effect
+	rm */test_dtrsm
