@@ -8,24 +8,26 @@
 #include <omp.h>
 #include <mkl.h>
 
-#define M 3
-#define N 3
+//#define M 16
+//#define N 2
 #define K 3
 #define BATCH_COUNT 10000
 #define BLOCK_SIZE 128
 #define CACHECLEARSIZE 10000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \
-								 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
-								 (alpha), bigA, CACHECLEARSIZE, \
-                                 bigA, CACHECLEARSIZE, 		\
-								 (beta),	\
-								 bigC, CACHECLEARSIZE)
+				 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE, \
+				 (alpha), bigA, CACHECLEARSIZE,		\
+                                 bigA, CACHECLEARSIZE,			\
+				 (beta),				\
+				 bigC, CACHECLEARSIZE)
 
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
 
-int main()
+int main(int arc, char *argv[])
 {
+  int M = atoi(argv[1]);
+  int N  = atoi(argv[2]); 
     // Timer
     double time;
     double timediff;
@@ -79,19 +81,19 @@ int main()
         (double**) malloc(sizeof(double*)*BATCH_COUNT);
 
     for (int idx = 0; idx < BATCH_COUNT; idx++)
-    {
+      {
         // Generate A
         Ap2p[idx] = (double*) malloc(sizeof(double) * M*M);
         LAPACKE_dlarnv_work(IONE, ISEED, M*M, Ap2p[idx]);
         for (int i = 0; i < M; i++)
-            Ap2p[idx][i*M+i] +=1;
-
+	  Ap2p[idx][i*M+i] +=1;
+	
         // Generate B
         Bp2p[idx] = (double*) malloc(sizeof(double) * M*N);
         LAPACKE_dlarnv_work(IONE, ISEED, M*N, Bp2p[idx]);
-    }
-
-//free(seed);
+      }
+    
+    //free(seed);
     
     // Setup parameters
     enum BBLAS_SIDE  side = BblasLeft;
@@ -99,7 +101,7 @@ int main()
     enum BBLAS_DIAG diag  = BblasNonUnit;
     enum BBLAS_TRANS transA = BblasNoTrans;
     enum BBLAS_TRANS transB = BblasNoTrans;
-    const double alpha = 1.0;
+    const double alpha = 2.0;
     const double beta = 0.0;
     const int lda = M;
     const int ldb = M;
@@ -121,7 +123,7 @@ int main()
     // Allocate A interleaved
     ctr = 0;
     for (int j = 0; j < M; j++) {
-        for (int i =  0; i < M; i++ ) {
+        for (int i = j; i < M; i++ ) {
             for (int idx = 0; idx < batch_count; idx++)
             {
                 arrayA[ctr] = Ap2p[idx][j*lda+i];
@@ -147,27 +149,6 @@ int main()
     printf("Clearing cache\n");
     clearcache();
     
-    // Compute result using CBLAS
-    printf("Computing results using CBLAS (OpenMP)\n");
-    // Get prior time
-    gettime();
-    timediff = time;
-    #pragma omp parallel for
-    for (int idx = 0; idx < batch_count; idx++)
-    {
-        cblas_dtrsm(
-            BblasColMajor, side, uplo, transA, diag,
-            M, N, alpha, Ap2p[idx], lda, Bp2p[idx], ldb);
-    }
-    gettime();
-    timediff = time - timediff;
-    printf("CBLAS Time = %f us\n", timediff);
-    printf("CBLAS Perf = %f GFlop/s\n\n", flops / timediff / 1000);
-    
-    // Clear cache
-    printf("Clearing cache\n");
-    clearcache();
-    
     // Interleaved with OpenMP
     printf("Computing result using interleaved format (OpenMP)\n");
     memcpy(arrayB, arrayBref, sizeof(double)*M*N*BATCH_COUNT);
@@ -185,6 +166,27 @@ int main()
     printf("INTL Time = %f us\n", timediff);
     printf("INTL Perf = %f GFlop/s\n\n", flops / timediff / 1000);
     
+    // Clear cache
+    printf("Clearing cache\n");
+    clearcache();
+    
+    // Compute result using CBLAS
+    printf("Computing results using CBLAS (OpenMP)\n");
+    // Get prior time
+    gettime();
+    timediff = time;
+    #pragma omp parallel for
+    for (int idx = 0; idx < batch_count; idx++)
+    {
+        cblas_dtrsm(
+            BblasColMajor, side, uplo, transA, diag,
+            M, N, alpha, Ap2p[idx], lda, Bp2p[idx], ldb);
+    }
+    gettime();
+    timediff = time - timediff;
+    printf("CBLAS Time = %f us\n", timediff);
+    printf("CBLAS Perf = %f GFlop/s\n\n", flops / timediff / 1000);
+
 
 // Calculate difference between results
 printf("Calculating l1 difference between results\n");
