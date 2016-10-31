@@ -10,9 +10,10 @@
 
 //#define M 16
 //#define N 2
+#define AVG 5
 #define K 3
 #define BATCH_COUNT 10000
-#define BLOCK_SIZE 128
+//#define BLOCK_SIZE 128
 #define CACHECLEARSIZE 10000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \
 				 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE, \
@@ -26,10 +27,11 @@
 
 int main(int arc, char *argv[])
 {
-  int M = atoi(argv[1]);
-  int N  = atoi(argv[2]); 
+    int M = atoi(argv[1]);
+    int N  = atoi(argv[2]);
+    int BLOCK_SIZE = atoi(argv[3]); 
     // Timer
-    double time;
+    double time, time_intl, time_mkl;
     double timediff;
     double flops = 1.0 * (N*M*M)*BATCH_COUNT;
     struct timeval tv;
@@ -143,73 +145,199 @@ int main(int arc, char *argv[])
         }
     }
     
-    memcpy(arrayBref, arrayB, sizeof(double)*M*N*BATCH_COUNT);
+    // Create block interleaved
+    printf("Converting to block interleaved format - block_size = %d \n\n", BLOCK_SIZE);
+    int blocksrequired = batch_count / BLOCK_SIZE;
+    int remainder = 0;
+    if (batch_count % BLOCK_SIZE != 0)
+      {
+	blocksrequired += 1;
+	remainder = batch_count % BLOCK_SIZE;
+      }
+    double *arrayAblk = (double*) 
+      malloc(sizeof(double) * M*M*blocksrequired*BLOCK_SIZE); 
+    double *arrayBblk = (double*)
+      malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
+    int startpos;
     
-    // Clear cache
-    printf("Clearing cache\n");
-    clearcache();
-    
-    // Interleaved with OpenMP
-    printf("Computing result using interleaved format (OpenMP)\n");
-    memcpy(arrayB, arrayBref, sizeof(double)*M*N*BATCH_COUNT);
-    
-    // Get prior time
-    gettime();
-    timediff = time;
-    bblas_dtrsm_batch_intl(
-        side, uplo, transA, diag,
-        M, N, alpha, arrayA, strideA,
-        (const double*) arrayB, strideB,
-        batch_count, info);
-    gettime();
-    timediff = time - timediff;
-    printf("INTL Time = %f us\n", timediff);
-    printf("INTL Perf = %f GFlop/s\n\n", flops / timediff / 1000);
-    
-    // Clear cache
-    printf("Clearing cache\n");
-    clearcache();
-    
+    // Allocate A block interleaved
+
+    for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+      {
+	startpos = blkidx * BLOCK_SIZE * M*(M+1)/2;
+    	if ((blkidx == blocksrequired - 1) && (remainder != 0))
+    	  {
+    	    // Remainders
+	    ctr = 0;
+    	    for (int j = 0; j < M; j++)
+	      for (int i = j; i < M; i++){
+		for (int idx = 0; idx < remainder; idx++)
+		  {
+		    arrayAblk[startpos + ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
+		    ctr++;
+		  }
+		ctr += BLOCK_SIZE - remainder;
+	      }
+	  }
+    	else
+    	  {
+	    ctr = 0;
+    	    for (int j = 0; j < M; j++) 
+    	      for (int i = j; i < M; i++ ) {
+    		for (int idx = 0; idx < BLOCK_SIZE; idx++)
+    		  {
+		    arrayAblk[startpos + ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
+    		    ctr++;
+    		  }
+	      }
+    	  }
+      }
+
+    // Allocate B block interleaved
+    for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+      {
+    	startpos = blkidx * BLOCK_SIZE * M*N;
+    	if (blkidx == blocksrequired - 1 && remainder != 0)
+    	  {
+    	    // Remainders
+    	    ctr = 0;
+    	    for (int pos = 0; pos < M*N; pos++)
+    	      {
+    		for (int idx = 0; idx < remainder; idx++)
+    		  {
+    		    arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
+    		    ctr++;
+    		  }
+    		ctr += BLOCK_SIZE - remainder;
+    	      }
+    	  }
+    	else
+    	  {
+    	    ctr = 0;
+    	    for (int pos = 0; pos < M*N; pos++)
+    	      {
+    		for (int idx = 0; idx < BLOCK_SIZE; idx++)
+    		  {
+    		    arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
+    		    ctr++;
+    		  }
+    	      }
+    	  }
+      }
     // Compute result using CBLAS
+    // Clear cache
+    printf("Clearing cache\n");
+    clearcache();    
     printf("Computing results using CBLAS (OpenMP)\n");
     // Get prior time
     gettime();
     timediff = time;
     #pragma omp parallel for
     for (int idx = 0; idx < batch_count; idx++)
-    {
+      {
         cblas_dtrsm(
             BblasColMajor, side, uplo, transA, diag,
             M, N, alpha, Ap2p[idx], lda, Bp2p[idx], ldb);
-    }
+      }
     gettime();
     timediff = time - timediff;
     printf("CBLAS Time = %f us\n", timediff);
     printf("CBLAS Perf = %f GFlop/s\n\n", flops / timediff / 1000);
 
+    // Interleaved with OpenMP
+    // Clear cache
+    printf("Clearing cache\n");
+    clearcache();
+    printf("Computing result using interleaved format (OpenMP)\n");
+    
+    // Get prior time
+    gettime();
+    time_intl = time;
+    bblas_dtrsm_batch_intl(side, uplo, transA, diag,
+			   M, N, alpha, (const double*)arrayA, strideA,
+			   arrayB, strideB,
+			   batch_count, info);
+    gettime();
 
-// Calculate difference between results
-printf("Calculating l1 difference between results\n");
-double norm = 0;
-ctr = 0;
-for (int j = 0; j < N; j++)
-{
+    time_intl = time - time_intl;
+    printf("INTL Time = %f us\n", time_intl);
+    printf("INTL Perf = %f GFlop/s\n", flops / time_intl / 1000);
+    printf("Ratio Time_mkl/Time_intl = %.2f\n\n", timediff/time_intl);
+    // Calculate difference between results
+    printf("Calculating l1 difference between results\n");
+    double norm = 0;
+    ctr = 0;
+    for (int j = 0; j < N; j++)
+      {
 	for (int i = 0; i < M; i++)
-	{
-		for (int idx = 0; idx < batch_count; idx++)
-		{
-			norm += cabs(arrayB[ctr] - Bp2p[idx][j*lda+i]);
-			ctr++;
-		}
-	}
-}
-printf("INTL norm = %f\n", norm);
+	  {
+	    for (int idx = 0; idx < batch_count; idx++)
+	      {
+		norm += abs(arrayB[ctr] - Bp2p[idx][j*lda+i]);
+		ctr++;
+	      }
+	  }
+      }
+    printf("INTL norm = %f\n", norm);
 
-
+    // Block Interleaved with OpenMP
+    // Clear cache
+    printf("Clearing cache\n");
+    clearcache();
+    
+    printf("Computing result using interleaved format (OpenMP)\n");
+    // Get prior time
+    gettime();
+    double time_blkintl = time;
+    bblas_dtrsm_batch_blkintl(
+    			      side, uplo, transA, diag,
+    			      M, N, alpha, (const double*) arrayAblk,
+    			      arrayBblk, BLOCK_SIZE,
+    			      batch_count, info);
+    gettime();
+    time_blkintl = time - time_blkintl;
+    printf("BLKINTL Time = %f us\n", time_blkintl);
+    printf("BLKINTLPerf = %f GFlop/s\n", flops / time_blkintl / 1000);
+    printf("Ratio Time_mkl/Time_blkintl = %.2f\n\n", timediff/time_blkintl);
+    norm = 0;
+    for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+      {
+    	startpos = blkidx * BLOCK_SIZE * M*N;
+    	if (blkidx == blocksrequired - 1 && remainder != 0)
+    	  {
+    	  // Remainders
+    	    ctr = 0;
+    	    for (int pos = 0; pos < M*N; pos++)
+    	      {
+    		for (int idx = 0; idx < remainder; idx++)
+    		  {
+    		    norm += abs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
+    		      ctr++;
+    		  }
+    		ctr += BLOCK_SIZE - remainder;
+    	      }
+    	}
+    	else
+    	  {
+    	    ctr = 0;
+    	    for (int pos = 0; pos < M*N; pos++)
+    	      {
+    		for (int idx = 0; idx < BLOCK_SIZE; idx++)
+    		  {
+    		    norm += abs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
+    		    ctr++;
+    		  }
+    	      }
+    	  }
+      }
+    printf("BLOCK INTL norm = %f\n", norm);
+    
+    
 // Free memory
 free(arrayA);
 free(arrayB);
-free(arrayBref);
+free(arrayAblk);
+free(arrayBblk);
 for (int idx = 0; idx < batch_count; idx++)
 {
 	free(Ap2p[idx]);

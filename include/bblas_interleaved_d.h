@@ -54,7 +54,19 @@ void bblas_dtrsm_batch_intl(
     int m,
     int n,
     double alpha,
-	const double *arrayA, int strideA,
+    const double *arrayA, int strideA,
     double *arrayB, int strideB,
+    int batch_count, int info);
+
+void bblas_dtrsm_batch_blkintl(
+    enum BBLAS_SIDE  side,
+    enum BBLAS_UPLO uplo,
+    enum BBLAS_TRANS trans,
+    enum BBLAS_DIAG diag,
+    int m,
+    int n,
+    double alpha,
+    const double * arrayA,
+    double *arrayB, int block_size,
     int batch_count, int info);
 #endif // BBLAS_D_INTL_H
