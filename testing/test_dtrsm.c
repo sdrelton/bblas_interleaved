@@ -11,7 +11,7 @@
 //#define M 16
 //#define N 2
 #define AVG 5
-#define K 3
+#define nbtest 4
 #define BATCH_COUNT 10000
 //#define BLOCK_SIZE 128
 #define CACHECLEARSIZE 10000
@@ -58,7 +58,7 @@ int main(int arc, char *argv[])
     int colmaj = BblasColMajor; // Use column major ordering
 
     // Needed to generate random matrices using LAPACKE_dlagge
-    const int len = max(M, max(N, max(CACHECLEARSIZE, K)));
+    const int len = max(M, max(N, CACHECLEARSIZE));
     
     printf("Generating random matrices to clear cache\n");
     // Generate matrices to clear cache
@@ -117,8 +117,6 @@ int main(int arc, char *argv[])
     double *arrayA = (double*)
         malloc(sizeof(double) * lda*M*batch_count);
     double *arrayB = (double*)
-        malloc(sizeof(double) * ldb*N*batch_count);
-    double *arrayBref = (double*)
         malloc(sizeof(double) * ldb*N*batch_count);
     int ctr;
     
@@ -224,45 +222,58 @@ int main(int arc, char *argv[])
     	      }
     	  }
       }
+
+
     // Compute result using CBLAS
     // Clear cache
-    printf("Clearing cache\n");
-    clearcache();    
     printf("Computing results using CBLAS (OpenMP)\n");
-    // Get prior time
-    gettime();
-    timediff = time;
-    #pragma omp parallel for
-    for (int idx = 0; idx < batch_count; idx++)
-      {
-        cblas_dtrsm(
-            BblasColMajor, side, uplo, transA, diag,
-            M, N, alpha, Ap2p[idx], lda, Bp2p[idx], ldb);
-      }
-    gettime();
-    timediff = time - timediff;
-    printf("CBLAS Time = %f us\n", timediff);
-    printf("CBLAS Perf = %f GFlop/s\n\n", flops / timediff / 1000);
 
-    // Interleaved with OpenMP
-    // Clear cache
-    printf("Clearing cache\n");
-    clearcache();
-    printf("Computing result using interleaved format (OpenMP)\n");
+    time_mkl =0.0;
+    for (int testid = 0; testid < nbtest; testid++){
+      clearcache();    
+      // Get prior time
+      gettime();
+      timediff = time;
+      
+      #pragma omp parallel for
+      for (int idx = 0; idx < batch_count; idx++)
+	{
+	  cblas_dtrsm(
+		      BblasColMajor, side, uplo, transA, diag,
+			M, N, alpha, Ap2p[idx], lda, Bp2p[idx], ldb);
+	}
+      
+      gettime();
+      timediff = time - timediff;
+      time_mkl += timediff;
+    }
+    time_mkl /= nbtest;
+    printf("CBLAS Time = %f us\n", time_mkl);
+    printf("CBLAS Perf = %f GFlop/s\n\n", flops / time_mkl / 1000);
     
-    // Get prior time
-    gettime();
-    time_intl = time;
-    bblas_dtrsm_batch_intl(side, uplo, transA, diag,
-			   M, N, alpha, (const double*)arrayA, strideA,
-			   arrayB, strideB,
-			   batch_count, info);
-    gettime();
+    // Interleaved with OpenMP
 
-    time_intl = time - time_intl;
+    printf("Computing result using interleaved format (OpenMP)\n");
+    time_intl = 0;
+    for (int testid = 0; testid < nbtest; testid++){
+      // Clear cache
+      clearcache();
+      
+      // Get prior time
+      gettime();
+      timediff = time;
+      bblas_dtrsm_batch_intl(side, uplo, transA, diag,
+			     M, N, alpha, (const double*)arrayA, strideA,
+			     arrayB, strideB,
+			     batch_count, info);
+      gettime();
+      timediff = time - timediff;
+      time_intl += timediff;
+    }
+    time_intl /= nbtest;
     printf("INTL Time = %f us\n", time_intl);
     printf("INTL Perf = %f GFlop/s\n", flops / time_intl / 1000);
-    printf("Ratio Time_mkl/Time_intl = %.2f\n\n", timediff/time_intl);
+    printf("Ratio Time_mkl/Time_intl = %.2f\n", time_mkl/time_intl);
     // Calculate difference between results
     printf("Calculating l1 difference between results\n");
     double norm = 0;
@@ -278,27 +289,30 @@ int main(int arc, char *argv[])
 	      }
 	  }
       }
-    printf("INTL norm = %f\n", norm);
+    printf("INTL norm = %f\n\n", norm);
 
-    // Block Interleaved with OpenMP
-    // Clear cache
-    printf("Clearing cache\n");
-    clearcache();
-    
     printf("Computing result using interleaved format (OpenMP)\n");
-    // Get prior time
-    gettime();
-    double time_blkintl = time;
-    bblas_dtrsm_batch_blkintl(
-    			      side, uplo, transA, diag,
-    			      M, N, alpha, (const double*) arrayAblk,
-    			      arrayBblk, BLOCK_SIZE,
-    			      batch_count, info);
-    gettime();
-    time_blkintl = time - time_blkintl;
+    // Block Interleaved with OpenMP
+    double time_blkintl =0.0;
+    for (int testid = 0; testid < nbtest; testid++){
+      // Clear cache
+      clearcache();
+      
+      gettime();
+      double timediff = time;
+      bblas_dtrsm_batch_blkintl(
+				side, uplo, transA, diag,
+				M, N, alpha, (const double*) arrayAblk,
+				arrayBblk, BLOCK_SIZE,
+				batch_count, info);
+      gettime();
+      timediff = time - timediff;
+      time_blkintl += timediff;
+    }
+    time_blkintl /=nbtest;
     printf("BLKINTL Time = %f us\n", time_blkintl);
     printf("BLKINTLPerf = %f GFlop/s\n", flops / time_blkintl / 1000);
-    printf("Ratio Time_mkl/Time_blkintl = %.2f\n\n", timediff/time_blkintl);
+    printf("Ratio Time_mkl/Time_blkintl = %.2f\n\n", time_mkl/time_blkintl);
     norm = 0;
     for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
       {
