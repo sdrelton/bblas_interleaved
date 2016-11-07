@@ -35,65 +35,65 @@ void bblas_dtrsm_batch_blkintl(
       && (diag == BblasNonUnit)
       && (trans == BblasNoTrans) ) {
 
-    # pragma omp parallel for
-    for (int blkidx = 0; blkidx < numblocks; blkidx++)
+       # pragma omp parallel for
+      for (int blkidx = 0; blkidx < numblocks; blkidx++)
       {
-	// Remainder
-	if ((blkidx == numblocks-1) && (remainder != 0))
-	  {
-	    for (int j = 0; j < n; j++)
-	      {
-		for (int k = 0; k < m; k++)
-		  {
-		    int startB = m*n*blkidx*block_size + (j*m + k)*block_size;
-		    
-		      #pragma omp parallel for
-		      for (int idx = 0; idx < remainder; idx++)
-			{
-			  if (k == 0 ) arrayB[startB + idx] *= alpha; // alpha B
-			  
-			  if (arrayB[startB + idx] != 0 ) {
-			    arrayB[startB + idx] /= arrayA[(m*(m+1)/2)*blkidx*block_size +
-							   ((2*m-k-1)*k/2 + k)*block_size + idx];
-			  }
-			  for (int i = k+1; i < m; i++)
-			    {
-			      if (k == 0 ) arrayB[m*n*blkidx*block_size + (j*m + i)*block_size + idx] *= alpha; // alpha B
-			      arrayB[m*n*blkidx*block_size + (j*m + i)*block_size + idx] -=
-				arrayB[startB + idx]*arrayA[(m*(m+1)/2)*blkidx*block_size +
-							    ((2*m-k-1)*k/2 + i)*block_size + idx];
-			    }
-			}
-		  }
-	      }
-	  } else 
-	  {
-	    for (int j = 0; j < n; j++)
-	      {
-		for (int k = 0; k < m; k++)
-		  {
-		    int startB = m*n*blkidx*block_size + (j*m + k)*block_size;
-		    
-		    #pragma omp parallel for
-		    for (int idx = 0; idx < block_size; idx++)
-		      {
-			if (k == 0 ) arrayB[startB + idx] *= alpha; // alpha B
-			
-			if (arrayB[startB + idx] != 0 ) {
-			  arrayB[startB + idx] /= arrayA[(m*(m+1)/2)*blkidx*block_size +
-							 ((2*m-k-1)*k/2 + k)*block_size + idx];
-			}
-			for (int i = k+1; i < m; i++)
-			  {
-			    if (k == 0 ) arrayB[m*n*blkidx*block_size + (j*m + i)*block_size + idx] *= alpha; // alpha B
-			    arrayB[m*n*blkidx*block_size + (j*m + i)*block_size + idx] -=
-			      arrayB[startB + idx]*arrayA[(m*(m+1)/2)*blkidx*block_size +
-							  ((2*m-k-1)*k/2 + i)*block_size + idx];
-			    }
-		      }
-		  }
-	      }
-	  }
+          // Remainder
+          if ((blkidx == numblocks-1) && (remainder != 0))
+          {
+              for (int j = 0; j < n; j++)
+              {
+                  for (int k = 0; k < m; k++)
+                  {
+                      int startB = m*n*blkidx*block_size + (j*m + k)*block_size;
+                      int Akk = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 + k)*block_size;
+                      int offset = k*block_size;
+
+                      for (int i = k; i < m; i++)
+                      {
+                          int Bij = m*n*blkidx*block_size + (j*m +i)*block_size ;
+                          int Aik = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 +i )*block_size;
+			  #pragma ivdep
+                          for (int idx = 0; idx < remainder; idx++)
+                          {
+                              if (k == 0 ) arrayB[Bij + idx] *= alpha; // alpha B
+                              if (i == k ){
+                                  arrayB[startB + idx] /= arrayA[Akk + idx];
+                                  continue; 
+                              }
+                              arrayB[Bij + idx] -=arrayB[startB + idx]*arrayA[Aik + idx];
+                          }
+                      }
+                  }
+              }
+          } else 
+          {
+              for (int j = 0; j < n; j++)
+              {
+                  for (int k = 0; k < m; k++)
+                  {
+                      int startB = m*n*blkidx*block_size + (j*m + k)*block_size;
+                      int Akk = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 + k)*block_size;
+                      int offset = k*block_size;
+                      
+                      for (int i = k; i < m; i++)
+                      {
+                          int Bij = m*n*blkidx*block_size + (j*m +i)*block_size ;
+                          int Aik = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 +i )*block_size;
+			  #pragma ivdep
+                          for (int idx = 0; idx < block_size; idx++)
+                          {
+                              if (k == 0 ) arrayB[Bij + idx] *= alpha; // alpha B
+                              if (i == k ){
+                                  arrayB[startB + idx] /= arrayA[Akk + idx];
+                                  continue; 
+                              }
+                              arrayB[Bij + idx] -=arrayB[startB + idx]*arrayA[Aik + idx];
+                          }
+                      }
+                  }
+              }
+          }
       }
   }
   info = BBLAS_SUCCESS;

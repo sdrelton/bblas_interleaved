@@ -4,11 +4,11 @@ BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
 
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
-LDFLAGS = -fopenmp
-CC = gcc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
-#CC = icc
-#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+LDFLAGS = -fopenmp -lmemkind
+#CC = gcc
+#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+CC = icc
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -fast -ipo
 DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
 
 # BLAS libraries
@@ -37,27 +37,25 @@ LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
 BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
                  bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c \
 	 	 bblas_dgemm_batch_blkintl.c bblas_dtrsm_batch_intl.c \
-                 bblas_dtrsm_batch_blkintl.c
+                 bblas_dtrsm_batch_blkintl.c 
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
-TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c test_dtrsm.c
+TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c test_dtrsm.c test_dconversion.c
 TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
 
 SOURCES = $(BBLAS_SRC) $(TEST_SRC)
 OBJECTS = $(SOURCES:.c=.o)
 
 all:
-	make test_zgemm
-	make test_dgemm
-	make tune_dgemm
-	make block_size_effect
+	#make test_zgemm
+	#make test_dgemm
+	#make tune_dgemm
+	#make block_size_effect
 	make test_dtrsm
 
 .DEFAULT_GOAL := all
 
-.c.o:
-	$(CC) -c $(CFLAGS) $(DEPS) -o $@ $<
 
 test_zgemm: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_zgemm.c -o $(BBLAS_TEST_DIR)/test_zgemm.o
@@ -77,8 +75,11 @@ block_size_effect: $(OBJECTS)
 
 test_dtrsm: $(OBJECTS)
 	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dtrsm.c -o $(BBLAS_TEST_DIR)/test_dtrsm.o
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dtrsm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dconversion.c -o $(BBLAS_TEST_DIR)/test_dconversion.o	
+	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dtrsm.o  $(BBLAS_TEST_DIR)/test_dconversion.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
 
+.c.o:
+	$(CC) -c $(CFLAGS) $(DEPS) -o $@ $<
 
 clean:
 	rm */*.o
