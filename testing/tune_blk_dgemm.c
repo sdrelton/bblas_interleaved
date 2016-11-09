@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #define BATCH_COUNT 10000
-#define CACHECLEARSIZE 2000
+#define CACHECLEARSIZE 10000
 #define clearcache()    mkl_set_num_threads(68);\
 	                    cblas_dgemm(colmaj, transA, transB,\
 						CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\

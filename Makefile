@@ -37,7 +37,8 @@ LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
 BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
                  bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c \
 	 	 bblas_dgemm_batch_blkintl.c bblas_dtrsm_batch_intl.c \
-                 bblas_dtrsm_batch_blkintl.c 
+                 bblas_dtrsm_batch_blkintl.c bblas_dtrsm_batch_blkintl_expert.c \
+		 bblas_dtrsm_batch_intl_expert.c	
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
 
