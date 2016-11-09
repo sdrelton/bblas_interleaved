@@ -1,5 +1,3 @@
-//#include <cblas.h>
-//#include <lapacke.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,11 +5,10 @@
 #include <sys/time.h>
 #include <omp.h>
 #include <mkl.h>
+#include <math.h>
+#include <hbwmalloc.h>
 
-//#define M 16
-//#define N 2
-#define AVG 5
-#define nbtest 4
+#define nbtest 10
 #define BATCH_COUNT 10000
 //#define BLOCK_SIZE 128
 #define CACHECLEARSIZE 10000
@@ -64,11 +61,11 @@ int main(int arc, char *argv[])
     // Generate matrices to clear cache
     int bigsize = CACHECLEARSIZE;
     double* bigA =
-        (double*) malloc(sizeof(double) * bigsize*bigsize);
+        (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
     double* bigB =
-        (double*) malloc(sizeof(double) * bigsize*bigsize);
+        (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
     double* bigC =
-        (double*) malloc(sizeof(double) * bigsize*bigsize);
+        (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
     
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize*bigsize, bigA);
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize*bigsize, bigB);
@@ -78,24 +75,24 @@ int main(int arc, char *argv[])
     printf("Generating random matrices for computation\n");
     // Now create pointer-to-pointer batch of random matrices
     double **Ap2p =
-        (double**) malloc(sizeof(double*)*BATCH_COUNT);
+        (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
     double **Bp2p =
-        (double**) malloc(sizeof(double*)*BATCH_COUNT);
+        (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
 
     for (int idx = 0; idx < BATCH_COUNT; idx++)
       {
         // Generate A
-        Ap2p[idx] = (double*) malloc(sizeof(double) * M*M);
+        Ap2p[idx] = (double*) hbw_malloc(sizeof(double) * M*M);
         LAPACKE_dlarnv_work(IONE, ISEED, M*M, Ap2p[idx]);
         for (int i = 0; i < M; i++)
 	  Ap2p[idx][i*M+i] +=1;
 	
         // Generate B
-        Bp2p[idx] = (double*) malloc(sizeof(double) * M*N);
+        Bp2p[idx] = (double*) hbw_malloc(sizeof(double) * M*N);
         LAPACKE_dlarnv_work(IONE, ISEED, M*N, Bp2p[idx]);
       }
     
-    //free(seed);
+    //hbw_free(seed);
     
     // Setup parameters
     enum BBLAS_SIDE  side = BblasLeft;
@@ -115,33 +112,43 @@ int main(int arc, char *argv[])
     // Create interleaved matrices
     printf("Converting to interleaved format\n\n");
     double *arrayA = (double*)
-        malloc(sizeof(double) * lda*M*batch_count);
+        hbw_malloc(sizeof(double) * lda*M*batch_count);
     double *arrayB = (double*)
-        malloc(sizeof(double) * ldb*N*batch_count);
+        hbw_malloc(sizeof(double) * ldb*N*batch_count);
     int ctr;
     
     // Allocate A interleaved
-    ctr = 0;
+    gettime();
+    timediff = time;
     for (int j = 0; j < M; j++) {
-        for (int i = j; i < M; i++ ) {
-            for (int idx = 0; idx < batch_count; idx++)
-            {
-                arrayA[ctr] = Ap2p[idx][j*lda+i];
-                ctr++;
-            }
-        }
+      for (int i = j; i < M; i++ ) {
+	int offset = (j*(2*M-j-1)/2 + i)*batch_count;
+	#pragma omp parallel for
+	#pragma ivdep
+	for (int idx = 0; idx < batch_count; idx++)
+	  {
+	    arrayA[offset + idx] = Ap2p[idx][j*lda+i];
+	  }
+      }
     }
-
+    gettime();
+    double time_cpyint = time - timediff;
     // Allocate B interleaved
-    ctr = 0;
+
+    gettime();
+    timediff = time;
     for (int pos = 0; pos < M*N; pos++)
-    {
-        for (int idx = 0; idx < batch_count; idx++)
-        {
-            arrayB[ctr] = Bp2p[idx][pos];
-            ctr++;
-        }
-    }
+      {
+	int offset = pos*batch_count;
+        #pragma omp parallel for
+	#pragma ivdep
+	for (int idx = 0; idx < batch_count; idx++)
+	  {
+	    arrayB[offset + idx] = Bp2p[idx][pos];
+	  }
+      }
+    gettime();
+    time_cpyint += 2*(time - timediff);
     
     // Create block interleaved
     printf("Converting to block interleaved format - block_size = %d \n\n", BLOCK_SIZE);
@@ -153,76 +160,77 @@ int main(int arc, char *argv[])
 	remainder = batch_count % BLOCK_SIZE;
       }
     double *arrayAblk = (double*) 
-      malloc(sizeof(double) * M*M*blocksrequired*BLOCK_SIZE); 
+      hbw_malloc(sizeof(double) * M*M*blocksrequired*BLOCK_SIZE); 
     double *arrayBblk = (double*)
-      malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
+      hbw_malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
     int startpos;
     
     // Allocate A block interleaved
-
+    gettime();
+    timediff = time;
+    #pragma omp parallel for
     for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
       {
 	startpos = blkidx * BLOCK_SIZE * M*(M+1)/2;
     	if ((blkidx == blocksrequired - 1) && (remainder != 0))
     	  {
     	    // Remainders
-	    ctr = 0;
     	    for (int j = 0; j < M; j++)
-	      for (int i = j; i < M; i++){
-		for (int idx = 0; idx < remainder; idx++)
-		  {
-		    arrayAblk[startpos + ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
-		    ctr++;
-		  }
-		ctr += BLOCK_SIZE - remainder;
+	      for (int i = j; i < M; i++) {
+		int offset = startpos + (j*(2*M-j-1)/2 + i)*BLOCK_SIZE;
+		for (int idx = 0; idx < remainder; idx++) {
+		  arrayAblk[offset + idx] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
+		}
 	      }
 	  }
     	else
     	  {
-	    ctr = 0;
     	    for (int j = 0; j < M; j++) 
     	      for (int i = j; i < M; i++ ) {
+		int offset = startpos + (j*(2*M-j-1)/2 + i)*BLOCK_SIZE;
     		for (int idx = 0; idx < BLOCK_SIZE; idx++)
     		  {
-		    arrayAblk[startpos + ctr] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
-    		    ctr++;
+		    arrayAblk[offset + idx] = Ap2p[blkidx * BLOCK_SIZE + idx][j*lda+i];
     		  }
 	      }
     	  }
       }
+    gettime();
+    double time_cpyblkint = time - timediff;
 
     // Allocate B block interleaved
+    gettime();
+    timediff = time;
+
+     #pragma omp parallel for
     for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
       {
     	startpos = blkidx * BLOCK_SIZE * M*N;
     	if (blkidx == blocksrequired - 1 && remainder != 0)
     	  {
     	    // Remainders
-    	    ctr = 0;
-    	    for (int pos = 0; pos < M*N; pos++)
-    	      {
-    		for (int idx = 0; idx < remainder; idx++)
-    		  {
-    		    arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
-    		    ctr++;
-    		  }
-    		ctr += BLOCK_SIZE - remainder;
-    	      }
+    	    for (int pos = 0; pos < M*N; pos++) {
+	      int offset = startpos + pos*BLOCK_SIZE;
+	      for (int idx = 0; idx < remainder; idx++)
+		{
+		  arrayBblk[offset + idx] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
+		}
+	    }
     	  }
     	else
     	  {
-    	    ctr = 0;
     	    for (int pos = 0; pos < M*N; pos++)
     	      {
+		int offset = startpos + pos*BLOCK_SIZE;
     		for (int idx = 0; idx < BLOCK_SIZE; idx++)
     		  {
-    		    arrayBblk[startpos + ctr] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
-    		    ctr++;
+    		    arrayBblk[offset + idx] = Bp2p[blkidx * BLOCK_SIZE + idx][pos];
     		  }
     	      }
     	  }
       }
-
+    gettime();
+    time_cpyblkint += 2*(time - timediff);
 
     // Compute result using CBLAS
     // Clear cache
@@ -274,6 +282,7 @@ int main(int arc, char *argv[])
     printf("INTL Time = %f us\n", time_intl);
     printf("INTL Perf = %f GFlop/s\n", flops / time_intl / 1000);
     printf("Ratio Time_mkl/Time_intl = %.2f\n", time_mkl/time_intl);
+    printf("Ratio Time_mkl/(Time_intl+conv) = %.2f\n", time_mkl/(time_intl + time_cpyint));
     // Calculate difference between results
     printf("Calculating l1 difference between results\n");
     double norm = 0;
@@ -284,12 +293,12 @@ int main(int arc, char *argv[])
 	  {
 	    for (int idx = 0; idx < batch_count; idx++)
 	      {
-		norm += abs(arrayB[ctr] - Bp2p[idx][j*lda+i]);
+		norm += fabs(arrayB[ctr] - Bp2p[idx][j*lda+i]);
 		ctr++;
 	      }
 	  }
       }
-    printf("INTL norm = %f\n\n", norm);
+    printf("INTL norm = %.2e\n\n", norm);
 
     printf("Computing result using interleaved format (OpenMP)\n");
     // Block Interleaved with OpenMP
@@ -312,7 +321,8 @@ int main(int arc, char *argv[])
     time_blkintl /=nbtest;
     printf("BLKINTL Time = %f us\n", time_blkintl);
     printf("BLKINTLPerf = %f GFlop/s\n", flops / time_blkintl / 1000);
-    printf("Ratio Time_mkl/Time_blkintl = %.2f\n\n", time_mkl/time_blkintl);
+    printf("Ratio Time_mkl/Time_blkintl = %.2f\n", time_mkl/time_blkintl);
+    printf("Ratio Time_mkl/(Time_blkintl + conv) = %.2f\n\n", time_mkl/(time_blkintl+ time_cpyblkint));
     norm = 0;
     for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
       {
@@ -325,7 +335,7 @@ int main(int arc, char *argv[])
     	      {
     		for (int idx = 0; idx < remainder; idx++)
     		  {
-    		    norm += abs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
+    		    norm += fabs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
     		      ctr++;
     		  }
     		ctr += BLOCK_SIZE - remainder;
@@ -338,27 +348,30 @@ int main(int arc, char *argv[])
     	      {
     		for (int idx = 0; idx < BLOCK_SIZE; idx++)
     		  {
-    		    norm += abs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
+    		    norm += fabs(arrayBblk[startpos + ctr] - Bp2p[blkidx * BLOCK_SIZE + idx][pos]);
     		    ctr++;
     		  }
     	      }
     	  }
       }
-    printf("BLOCK INTL norm = %f\n", norm);
+    printf("BLOCK INTL norm = %.2e\n", norm);
     
     
-// Free memory
-free(arrayA);
-free(arrayB);
-free(arrayAblk);
-free(arrayBblk);
+// Hbw_Free memory
+hbw_free(arrayA);
+hbw_free(arrayB);
+hbw_free(arrayAblk);
+hbw_free(arrayBblk);
+hbw_free(bigA);
+hbw_free(bigB);
+hbw_free(bigC);
 for (int idx = 0; idx < batch_count; idx++)
 {
-	free(Ap2p[idx]);
-	free(Bp2p[idx]);
+	hbw_free(Ap2p[idx]);
+	hbw_free(Bp2p[idx]);
 }
-free(Ap2p);
-free(Bp2p);
+hbw_free(Ap2p);
+hbw_free(Bp2p);
 
 
 return 0;

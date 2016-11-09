@@ -4,11 +4,11 @@ BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
 
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
-LDFLAGS = -fopenmp
-CC = gcc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
-#CC = icc
-#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+LDFLAGS = -fopenmp -lmemkind
+#CC = gcc
+#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays -mfma
+CC = icc
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -fast -ipo
 DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
 
 # BLAS libraries
@@ -48,10 +48,10 @@ SOURCES = $(BBLAS_SRC) $(TEST_SRC)
 OBJECTS = $(SOURCES:.c=.o)
 
 all:
-	make test_zgemm
-	make test_dgemm
-	make tune_dgemm
-	make block_size_effect
+	#make test_zgemm
+	#make test_dgemm
+	#make tune_dgemm
+	#make block_size_effect
 	make test_dtrsm
 
 .DEFAULT_GOAL := all

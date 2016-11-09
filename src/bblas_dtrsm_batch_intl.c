@@ -31,21 +31,22 @@ void bblas_dtrsm_batch_intl(
 	for (int k = 0; k < m; k++)
 	  {
 	    int startB = (j*m + k)*strideB;
-
-	    #pragma omp parallel for
-	    for (int idx = 0; idx < batch_count; idx++)
-	      {
-		if (k == 0 ) arrayB[(j*m+k)*strideB + idx] *= alpha; // alpha B
-
-		if (arrayB[startB + idx] != 0 ) {
-		  arrayB[startB + idx] /= arrayA[((2*m-k-1)*k/2 + k)*strideA + idx];
+	    int Akk = ((2*m-k-1)*k/2 + k)*strideA;
+	    for (int i = k; i < m; i++) {
+	      int Bij = (j*m+i)*strideB;
+	      int Aik = ((2*m-k-1)*k/2 + i)*strideA;
+              #pragma omp parallel for
+	      #pragma ivdep
+	      for (int idx = 0; idx < batch_count; idx++)
+		{
+		  if (k == 0 ) arrayB[ Bij + idx] *= alpha; // alpha B
+		  if (i == k) {
+		    arrayB[startB + idx] /= arrayA[Akk + idx];
+		    continue;
+		      } 
+		  arrayB[Bij + idx] -=  arrayB[startB + idx]*arrayA[ Aik + idx];
 		}
-		for (int i = k+1; i < m; i++)
-		  {
-		    if (k == 0 ) arrayB[(j*m+i)*strideB + idx] *= alpha; // alpha B
-		    arrayB[(j*m + i)*strideB + idx] -=  arrayB[startB + idx]*arrayA[((2*m-k-1)*k/2 + i)*strideA + idx];
-		  }
-	      }
+	    }
 	  }
       }
   }
