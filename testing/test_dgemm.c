@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "bblas_interleaved.h"
+#include <hbwmalloc.h>
 #include <sys/time.h>
 #include <omp.h>
 #include <mkl.h>
@@ -14,7 +15,7 @@
 #define BATCH_COUNT 10000
 #define BLOCK_SIZE 128
 
-#define CACHECLEARSIZE 1000
+#define CACHECLEARSIZE 10000
 #define clearcache() cblas_dgemm(colmaj, transA, transB, \
 								 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
 								 (alpha), bigA, CACHECLEARSIZE, \
@@ -54,7 +55,7 @@ int colmaj = BblasColMajor; // Use column major ordering
 
 // Needed to generate random matrices using LAPACKE_dlagge
 const int len = max(M, max(N, max(CACHECLEARSIZE, K)));
-double *scalar = (double*) malloc (sizeof(double) * len);
+double *scalar = (double*) hbw_malloc (sizeof(double) * len);
 double val;
 val = 1.0;
 for (int i = 0; i < len; i++)
@@ -67,36 +68,36 @@ printf("Generating random matrices to clear cache\n");
 // Generate matrices to clear cache
 int bigsize = CACHECLEARSIZE;
 double* bigA =
-	(double*) malloc(sizeof(double) * bigsize*bigsize);
+	(double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
 double* bigC =
-	(double*) malloc(sizeof(double) * bigsize*bigsize);
+	(double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
 LAPACKE_dlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigA, bigsize, seed);
 LAPACKE_dlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigC, bigsize, seed);
 
 printf("Generating random matrices for computation\n");
 // Now create pointer-to-pointer batch of random matrices
 double **Ap2p =
-	(double**) malloc(sizeof(double*)*BATCH_COUNT);
+	(double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
 double **Bp2p =
-	(double**) malloc(sizeof(double*)*BATCH_COUNT);
+	(double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
 double **Cp2p =
-	(double**) malloc(sizeof(double*)*BATCH_COUNT);
+	(double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
 
 for (int idx = 0; idx < BATCH_COUNT; idx++)
 {
 	// Generate A
-	Ap2p[idx] = (double*) malloc(sizeof(double) * M*K);
+	Ap2p[idx] = (double*) hbw_malloc(sizeof(double) * M*K);
 	LAPACKE_dlagge(colmaj, M, K, M-1, K-1, scalar, Ap2p[idx], M, seed);
 
 	// Generate B
-	Bp2p[idx] = (double*) malloc(sizeof(double) * K*N);
+	Bp2p[idx] = (double*) hbw_malloc(sizeof(double) * K*N);
 	LAPACKE_dlagge(colmaj, K, N, K-1, N-1, scalar, Bp2p[idx], K, seed);
 	// Generate C
-	Cp2p[idx] = (double*) malloc(sizeof(double) * M*N);
+	Cp2p[idx] = (double*) hbw_malloc(sizeof(double) * M*N);
 	LAPACKE_dlagge(colmaj, M, N, M-1, N-1, scalar, Cp2p[idx], M, seed);
 }
-free(scalar);
-//free(seed);
+hbw_free(scalar);
+//hbw_free(seed);
 
 // Setup parameters
 const enum BBLAS_TRANS transA = BblasNoTrans;
@@ -115,13 +116,13 @@ int info = 0;
 // Create interleaved matrices
 printf("Converting to interleaved format\n\n");
 double *arrayA = (double*)
-	malloc(sizeof(double) * lda*K*batch_count);
+	hbw_malloc(sizeof(double) * lda*K*batch_count);
 double *arrayB = (double*)
-	malloc(sizeof(double) * ldb*N*batch_count);
+	hbw_malloc(sizeof(double) * ldb*N*batch_count);
 double *arrayC = (double*)
-	malloc(sizeof(double) * ldc*N*batch_count);
+	hbw_malloc(sizeof(double) * ldc*N*batch_count);
 double *arrayCorig = (double*)
-	malloc(sizeof(double) * ldc*N*batch_count);
+	hbw_malloc(sizeof(double) * ldc*N*batch_count);
 int ctr;
 
 // Allocate A interleaved
@@ -169,11 +170,11 @@ if (batch_count % BLOCK_SIZE != 0)
 	remainder = batch_count % BLOCK_SIZE;
 }
 double *arrayAblk = (double*)
-	malloc(sizeof(double) * M*K*blocksrequired*BLOCK_SIZE);
+	hbw_malloc(sizeof(double) * M*K*blocksrequired*BLOCK_SIZE);
 double *arrayBblk = (double*)
-	malloc(sizeof(double) * K*N*blocksrequired*BLOCK_SIZE);
+	hbw_malloc(sizeof(double) * K*N*blocksrequired*BLOCK_SIZE);
 double *arrayCblk = (double*)
-	malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
+	hbw_malloc(sizeof(double) * M*N*blocksrequired*BLOCK_SIZE);
 int startpos;
 
 // Allocate A block interleaved
@@ -423,23 +424,23 @@ for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
 }
 printf("BLOCK INTL norm = %f\n", norm);
 
-// Free memory
-free(arrayA);
-free(arrayB);
-free(arrayC);
-free(arrayAblk);
-free(arrayBblk);
-free(arrayCblk);
-free(arrayCorig);
+// Hbw_Free memory
+hbw_free(arrayA);
+hbw_free(arrayB);
+hbw_free(arrayC);
+hbw_free(arrayAblk);
+hbw_free(arrayBblk);
+hbw_free(arrayCblk);
+hbw_free(arrayCorig);
 for (int idx = 0; idx < batch_count; idx++)
 {
-	free(Ap2p[idx]);
-	free(Bp2p[idx]);
-	free(Cp2p[idx]);
+	hbw_free(Ap2p[idx]);
+	hbw_free(Bp2p[idx]);
+	hbw_free(Cp2p[idx]);
 }
-free(Ap2p);
-free(Bp2p);
-free(Cp2p);
+hbw_free(Ap2p);
+hbw_free(Bp2p);
+hbw_free(Cp2p);
 
 
 return 0;
