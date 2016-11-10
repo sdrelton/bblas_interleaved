@@ -1,0 +1,15 @@
+BBLAS_BASE_DIR = /home/mzounon/NLAFET/bblas_interleaved
+BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
+BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
+BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
+
+DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
+LDFLAGS = -fopenmp -lmemkind
+CC = gcc
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
+DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
+
+# BLAS LAPACK LAPACKE libraries
+MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a -Wl,--end-group -lpthread -lm -ldl
+
+LDFLAGS += $(MKL_LIB) -lm -lgfortran
