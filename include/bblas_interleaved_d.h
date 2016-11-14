@@ -94,6 +94,11 @@ void bblas_dtrsm_batch_blkintl(
 		       double **Bp2p, int  ldb, int block_size,
 		       double *work, int batch_count, int info);
 
+void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
+				double **Ap2p, int lda,
+				int block_size, double *work,
+				int batch_count, int info);
+
 // Annexe routines for conversions and norm computation
 void memcpy_bptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count);
 void memcpy_bptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_count);
