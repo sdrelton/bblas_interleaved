@@ -7,18 +7,13 @@
 #include <mkl.h>
 #include <hbwmalloc.h>
 
-#define nbtest 10
+#define nbtest 20
 #define BATCH_COUNT 10000
 #define MAX_BLOCK_SIZE 256
 #define MAX_M 32
 #define MAX_RHS 1
-#define CACHECLEARSIZE 10000
-#define clearcache() cblas_dgemm(colmaj, transA, transB,		\
-				 CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE, \
-				 (alpha), bigA, CACHECLEARSIZE,		\
-                                 bigA, CACHECLEARSIZE,			\
-				 (beta),				\
-				 bigC, CACHECLEARSIZE)
+#define CACHECLEARSIZE 10000000
+#define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
 
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
@@ -45,16 +40,12 @@ int main(int arc, char *argv[])
   // Generate matrices to clear cache
   int bigsize = CACHECLEARSIZE;
   double* bigA =
-    (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
+    (double*) malloc(sizeof(double) * bigsize);
   double* bigB =
-    (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
-  double* bigC =
-    (double*) hbw_malloc(sizeof(double) * bigsize*bigsize);
-    
+    (double*) malloc(sizeof(double) * bigsize);
 
-  LAPACKE_dlarnv_work(IONE, ISEED, bigsize*bigsize, bigA);
-  LAPACKE_dlarnv_work(IONE, ISEED, bigsize*bigsize, bigB);
-  LAPACKE_dlarnv_work(IONE, ISEED, bigsize*bigsize, bigC);
+  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
+  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
   //Interleave variables
   double *arrayA = NULL;
@@ -117,7 +108,7 @@ int main(int arc, char *argv[])
 bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\
 ratio(mkl/(blkintl+conv)), error(intl)\n");
 
-  for (int M = 2; M < 32; M++){
+  for (int M = 2; M < 33; M++){
     for (int N = 1; N <= MAX_RHS; N++){
       lda = M;
       ldb = M;
@@ -359,9 +350,8 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
   hbw_free(Bref);
   hbw_free(Bsol);
   hbw_free(Xp2p);
-  hbw_free(bigA);
-  hbw_free(bigB);
-  hbw_free(bigC);
+  free(bigA);
+  free(bigB);
   return 0;
 }
 
