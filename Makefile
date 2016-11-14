@@ -1,91 +1,59 @@
-BBLAS_BASE_DIR = /home/mzounon/NLAFET/bblas_interleaved
-BBLAS_SRC_DIR = $(BBLAS_BASE_DIR)/src
-BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
-BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
-
-DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
-LDFLAGS = -fopenmp -lmemkind
-#CC = gcc
-#CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -ftree-vectorize -mtune=native -ffast-math -fassociative-math -fprefetch-loop-arrays
-CC = icc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -fast -ipo
-DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
-
-# BLAS libraries
-BLAS_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a -Wl,--end-group -lpthread -lm -ldl
-
-# CBLAS libraries
-#CBLAS_DIR       =
-#CBLAS_LIB       = -L$(CBLAS_DIR)/lib
-#CBLAS_INC       = -I$(CBLAS_DIR)/include
-
-# LAPACK libraries
-#LAPACK_DIR      =
-#LAPACK_LIB      = -L$(LAPACK_DIR)/lib
-#LAPACK_INC      = -I$(LAPACK_DIR)/include
-
-# LAPACKE libraries
-#LAPACKE_DIR     =
-#LAPACKE_LIB     = -L$(LAPACKE_DIR)/lib -llapacke -llapack
-#LAPACKE_INC     = -I$(LAPACKE_DIR)/include
-
-#DEPS += $(LAPACKE_INC) $(LAPACK_INC) $(CBLAS_INC)
-
-LDFLAGS += $(LAPACKE_LIB) $(LAPACK_LIB) $(CBLAS_LIB) $(BLAS_LIB) -lm -lgfortran
-
+include make.inc.icc
 
 BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
                  bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c \
 	 	 bblas_dgemm_batch_blkintl.c bblas_dtrsm_batch_intl.c \
                  bblas_dtrsm_batch_blkintl.c bblas_dtrsm_batch_blkintl_expert.c \
-		 bblas_dtrsm_batch_intl_expert.c	
+		 bblas_dtrsm_batch_intl_expert.c bblas_dpotrf_batch_blkintl.c
+
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
+COMMON_SRC = $(BBLAS_SRC) $(BBLAS_TEST_DIR)/test_dconversion.c 
 
-TEST_SRC_LIST = test_zgemm.c test_dgemm.c tune_blk_dgemm.c block_size_effect.c test_dtrsm.c test_dconversion.c
-TEST_SRC = $(addprefix $(BBLAS_TEST_DIR)/, $(BBLAS_TEST_LIST))
+#Create object files test_dtrsm binary 
+SOURCES_DTRSM = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dtrsm.c 
+OBJECTS_DTRSM = $(SOURCES_DTRSM:.c=.o)
 
-SOURCES = $(BBLAS_SRC) $(TEST_SRC)
-OBJECTS = $(SOURCES:.c=.o)
+#Create object files test_dpotrf binary 
+SOURCES_DPOTRF = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dpotrf.c 
+OBJECTS_DPOTRF = $(SOURCES_DPOTRF:.c=.o)
+
+#Create object files for test_dgemm binary
+SOURCES_DGEMM = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dgemm.c 
+OBJECTS_DGEMM = $(SOURCES_DGEMM:.c=.o)
+
+#Create object files for tune_dgemm binary
+SOURCES_TUNE = $(COMMON_SRC) $(BBLAS_TEST_DIR)/tune_blk_dgemm.c
+OBJECTS_TUNE = $(SOURCES_TUNE:.c=.o)
+
+#Create object files for  binary block_size_effect
+SOURCES_BLK = $(COMMON_SRC) $(BBLAS_TEST_DIR)/block_size_effect.c
+OBJECTS_BLK = $(SOURCES_BLK:.c=.o)
 
 all:
-	#make test_zgemm
-	#make test_dgemm
-	#make tune_dgemm
-	#make block_size_effect
-	make test_dtrsm
+	make test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf
 
 .DEFAULT_GOAL := all
 
+test_dgemm: $(OBJECTS_DGEMM)
+	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_DGEMM) $(LDFLAGS) -o $@
 
-test_zgemm: $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_zgemm.c -o $(BBLAS_TEST_DIR)/test_zgemm.o
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_zgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+tune_dgemm: $(OBJECTS_TUNE)
+	 cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_TUNE) $(LDFLAGS) -o $@
 
-test_dgemm: $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dgemm.c -o $(BBLAS_TEST_DIR)/test_dgemm.o
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+block_size_effect: $(OBJECTS_BLK)
+	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_BLK) $(LDFLAGS) -o $@
 
-tune_dgemm: $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.c -o $(BBLAS_TEST_DIR)/tune_blk_dgemm.o
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/tune_blk_dgemm.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+test_dtrsm: $(OBJECTS_DTRSM)
+	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_DTRSM) $(LDFLAGS) -o $@
 
-block_size_effect: $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/block_size_effect.c -o $(BBLAS_TEST_DIR)/block_size_effect.o
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/block_size_effect.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
-
-test_dtrsm: $(OBJECTS)
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dtrsm.c -o $(BBLAS_TEST_DIR)/test_dtrsm.o
-	$(CC) $(CFLAGS) $(DEPS) $(BBLAS_TEST_DIR)/test_dconversion.c -o $(BBLAS_TEST_DIR)/test_dconversion.o	
-	$(CC) $(OBJECTS) $(BBLAS_TEST_DIR)/test_dtrsm.o  $(BBLAS_TEST_DIR)/test_dconversion.o $(LDFLAGS) -o $(BBLAS_TEST_DIR)/$@
+test_dpotrf: $(OBJECTS_DPOTRF)
+	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_DPOTRF) $(LDFLAGS) -o $@
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(DEPS) -o $@ $<
+	$(CC) -c $(CFLAGS) $(DEPS) $< -o $@ 
 
+.SILENT: clean
 clean:
-	rm */*.o
-	rm */test_zgemm
-	rm */test_dgemm
-	rm */tune_dgemm
-	rm */block_size_effect
-	rm */test_dtrsm
+	-@rm $(BBLAS_SRC_DIR)/*.o $(BBLAS_SRC_DIR)/*~ 2>/dev/null || true
+	cd  $(BBLAS_TEST_DIR); @rm test_zgemm test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf *~ 2>/dev/null || true

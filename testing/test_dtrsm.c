@@ -27,25 +27,8 @@ int main(int arc, char *argv[])
   double timediff;
   double perf_mkl;
   struct timeval tv;
-  int ISEED[4] ={0,0,0,1};
-  int IONE = 1;
   // Info
   int nbconvtest;
-    
-  if (1) { 
-    nbconvtest = nbtest;
-  } else {
-    nbconvtest = 1;
-  }
-  // Generate matrices to clear cache
-  int bigsize = CACHECLEARSIZE;
-  double* bigA =
-    (double*) malloc(sizeof(double) * bigsize);
-  double* bigB =
-    (double*) malloc(sizeof(double) * bigsize);
-
-  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
-  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
   //Interleave variables
   double *arrayA = NULL;
@@ -102,7 +85,17 @@ int main(int arc, char *argv[])
   int lda;
   int ldb;
   double flops;
-  
+
+  // Generate matrices to clear cach
+  int ISEED[4] ={0,0,0,1};
+  int IONE = 1;
+  int bigsize = CACHECLEARSIZE;
+  double* bigA =
+    (double*) malloc(sizeof(double) * bigsize);
+  double* bigB =
+    (double*) malloc(sizeof(double) *bigsize);
+  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
+  LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
   printf("M,N,perf(Cblas +OMP),perf(full intl), ratio(mkl/intl), perf(intl+conv), ratio(mkl/intl+conv) perf(blkintl),\
 bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\

@@ -8,16 +8,8 @@
 #include <unistd.h>
 
 #define BATCH_COUNT 10000
-#define CACHECLEARSIZE 2000
-#define clearcache()    mkl_set_num_threads(20);\
-	                    cblas_dgemm(colmaj, transA, transB,\
-						CACHECLEARSIZE, CACHECLEARSIZE, CACHECLEARSIZE,\
-						(alpha), bigA, CACHECLEARSIZE,\
-                        bigA, CACHECLEARSIZE,\
-						(beta),\
-						bigC, CACHECLEARSIZE);\
-						mkl_set_num_threads(1)
-
+#define CACHECLEARSIZE 10000000
+#define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
 
 #define gettime() gettimeofday(&tv, NULL); time = tv.tv_sec*1000000+tv.tv_usec
 #define TIMINGRUNS 10
@@ -65,14 +57,17 @@ for (int i = 0; i < len; i++)
 }
 
 printf("Generating random matrices to clear cache\n");
-// Generate matrices to clear cache
-int bigsize = CACHECLEARSIZE;
-double* bigA =
-	(double*) malloc(sizeof(double) * bigsize*bigsize);
-double* bigC =
-	(double*) malloc(sizeof(double) * bigsize*bigsize);
-LAPACKE_dlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigA, bigsize, seed);
-LAPACKE_dlagge(colmaj, bigsize, bigsize, bigsize-1, bigsize-1, scalar, bigC, bigsize, seed);
+// Generate matrices to clear cach
+ int ISEED[4] ={0,0,0,1};
+ int IONE = 1;
+ int bigsize = CACHECLEARSIZE;
+ double* bigA =
+   (double*) malloc(sizeof(double) * bigsize);
+ double* bigB =
+   (double*) malloc(sizeof(double) *bigsize);
+					      
+ LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
+ LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
 printf("Generating random matrices for computation\n");
 // Now create pointer-to-pointer batch of random matrices
@@ -333,7 +328,8 @@ free(Ap2p);
 free(Bp2p);
 free(Cp2p);
 free(Cp2pcpy);
-
+ free(bigA);
+ free(bigB);
 printf("\n\n\n");
 
 return 0;

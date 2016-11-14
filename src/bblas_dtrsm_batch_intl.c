@@ -13,7 +13,7 @@ void bblas_dtrsm_batch_intl(
     int n,
     double alpha,
     const double **Ap2p, int lda,
-    double *Bp2p, int ldb,
+    double **Bp2p, int ldb,
     double *work, int batch_count, int info)
 {
   // Error checks go here
