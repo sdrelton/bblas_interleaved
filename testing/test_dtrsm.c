@@ -79,8 +79,6 @@ int main(int arc, char *argv[])
   const int batch_count = BATCH_COUNT;
   const int strideA = BATCH_COUNT;
   const int strideB = BATCH_COUNT;
-  int seed[4] = {2, 4, 1, 7}; // random seed
-  int colmaj = BblasColMajor; // Use column major ordering
   int info = 0;
   int lda;
   int ldb;
@@ -175,7 +173,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 	clearcache();
 	gettime();
 	timediff = time;
-	bblas_dtrsm_batch_intl_expert(side, uplo, transA, diag,
+	bblas_dtrsm_intl_expert(side, uplo, transA, diag,
 			       M, N, alpha, (const double*)arrayA, strideA,
 			       arrayB, strideB,
 			       batch_count, info);
@@ -205,7 +203,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 	clearcache();
 	gettime();
 	timediff = time;
-	bblas_dtrsm_batch_intl(side, uplo, transA, diag,
+	bblas_dtrsm_intl(side, uplo, transA, diag,
 			       M, N, alpha, Ap2p, lda,
 			       Bp2p, ldb,
 			       work, batch_count, info);
@@ -261,7 +259,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 	  clearcache();
 	  gettime();
 	  double timediff = time;
-	  bblas_dtrsm_batch_blkintl_expert(
+	  bblas_dtrsm_blkintl_expert(
 				    side, uplo, transA, diag,
 				    M, N, alpha, (const double*) arrayAblk,
 				    arrayBblk, BLOCK_SIZE,
@@ -292,7 +290,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 	  clearcache();    
 	  gettime();
 	  timediff = time;
-	  bblas_dtrsm_batch_blkintl(
+	  bblas_dtrsm_blkintl(
 			    side, uplo, transA, diag,
 			    M, N, alpha, Ap2p, lda, Bp2p, ldb,
 			    BLOCK_SIZE, work, batch_count, info);

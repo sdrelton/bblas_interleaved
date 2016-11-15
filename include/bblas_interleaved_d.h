@@ -7,7 +7,7 @@
 /*
  * Declarations of level 3 batched BLAS - alphabetical order
  */
-void bblas_dgemm_batch_intl(
+void bblas_dgemm_intl(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -20,7 +20,7 @@ void bblas_dgemm_batch_intl(
 	double *arrayC, const int strideC,
 	const int batch_count, int info);
 
-void bblas_dgemm_batch_intl_opt(
+void bblas_dgemm_intl_opt(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -33,7 +33,20 @@ void bblas_dgemm_batch_intl_opt(
 	double *arrayC, const int strideC,
 	const int batch_count, int info);
 
-void bblas_dgemm_batch_blkintl(
+void bblas_dgemm_blkintl(
+			 enum BBLAS_TRANS transA,
+			 enum BBLAS_TRANS transB,
+			 int M,
+			 int N,
+			 int K,
+			 double alpha,
+			 const double **Ap2p,
+			 const double **Bp2p,
+			 double beta, double **Cp2p,
+			 double *work, int block_size,
+			 int batch_count, int info);
+
+void bblas_dgemm_blkintl_expert(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -46,7 +59,7 @@ void bblas_dgemm_batch_blkintl(
 	double *arrayC, const int block_size,
 	const int batch_count, int info);
 
-void bblas_dtrsm_batch_intl_expert(
+void bblas_dtrsm_intl_expert(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -58,7 +71,7 @@ void bblas_dtrsm_batch_intl_expert(
     double *arrayB, int strideB,
     int batch_count, int info);
 
-void bblas_dtrsm_batch_blkintl_expert(
+void bblas_dtrsm_blkintl_expert(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -70,7 +83,7 @@ void bblas_dtrsm_batch_blkintl_expert(
     double *arrayB, int block_size,
     int batch_count, int info);
 
-void bblas_dtrsm_batch_intl(
+void bblas_dtrsm_intl(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -82,7 +95,7 @@ void bblas_dtrsm_batch_intl(
     double **Bp2p, int ldb,
     double *work, int batch_count, int info);
 
-void bblas_dtrsm_batch_blkintl(
+void bblas_dtrsm_blkintl(
 		       enum BBLAS_SIDE  side,
 		       enum BBLAS_UPLO uplo,
 		       enum BBLAS_TRANS trans,
@@ -94,7 +107,7 @@ void bblas_dtrsm_batch_blkintl(
 		       double **Bp2p, int  ldb, int block_size,
 		       double *work, int batch_count, int info);
 
-void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
+void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 				double **Ap2p, int lda,
 				int block_size, double *work,
 				int batch_count, int info);

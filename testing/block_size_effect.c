@@ -284,7 +284,7 @@ for (int run = 0; run < TIMINGRUNS; run++)
 	gettime();
 	timediff = time;
 
-	bblas_dgemm_batch_blkintl(
+	bblas_dgemm_blkintl_expert(
 		transA, transB,
 		M, N, K,
 		alpha,

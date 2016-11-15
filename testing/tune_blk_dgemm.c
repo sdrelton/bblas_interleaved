@@ -256,7 +256,7 @@ int main()
 	  gettime();
 	  timediff = time;
 
-	  bblas_dgemm_batch_intl(
+	  bblas_dgemm_intl(
 				 transA, transB,
 				 M, N, K,
 				 alpha,
@@ -288,7 +288,7 @@ int main()
 	  gettime();
 	  timediff = time;
 
-	  bblas_dgemm_batch_intl_opt(
+	  bblas_dgemm_intl_opt(
 				     transA, transB,
 				     M, N, K,
 				     alpha,
@@ -433,7 +433,7 @@ int main()
 	      gettime();
 	      timediff = time;
 
-	      bblas_dgemm_batch_blkintl(
+	      bblas_dgemm_blkintl_expert(
 					transA, transB,
 					M, N, K,
 					alpha,

@@ -5,6 +5,7 @@
 #include <sys/time.h>
 #include <omp.h>
 #include <mkl.h>
+#include <math.h>
 #include <hbwmalloc.h>
 
 #define nbtest 10
@@ -115,7 +116,7 @@ ratio(mkl/(blkintl+conv)), error(blkintl)\n");
 
       time_bestblkintl = 100000*time_mkl; //initialization
       double best_block = 0;
-      for (int BLOCK_SIZE = 16; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=16) {
+      for (int BLOCK_SIZE = 8; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=8) {
 	
 	// Create block interleaved
 	int blocksrequired = batch_count / BLOCK_SIZE;
@@ -136,7 +137,7 @@ ratio(mkl/(blkintl+conv)), error(blkintl)\n");
 	  clearcache();    
 	  gettime();
 	  timediff = time;
-	  bblas_dpotrf_batch_blkintl(CblasLower, N, Ap2p, lda,
+	  bblas_dpotrf_blkintl(CblasLower, N, Ap2p, lda,
 				     BLOCK_SIZE, work, batch_count, info);
 	  gettime();
 	  timediff = time - timediff;

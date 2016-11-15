@@ -4,7 +4,7 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dgemm_batch_intl(
+void bblas_dgemm_intl(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,

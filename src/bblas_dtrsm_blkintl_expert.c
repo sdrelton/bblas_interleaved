@@ -4,7 +4,7 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dtrsm_batch_blkintl_expert(
+void bblas_dtrsm_blkintl_expert(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
