@@ -7,7 +7,7 @@
 #include <mkl.h>
 #include <hbwmalloc.h>
 
-#define nbtest 10
+#define nbtest 20
 #define BATCH_COUNT 10000
 #define MAX_BLOCK_SIZE 256
 #define MAX_M 32
@@ -29,7 +29,7 @@ int main(int arc, char *argv[])
   struct timeval tv;
   // Info
   int nbconvtest;
-    
+
   //Interleave variables
   double *arrayA = NULL;
   double *arrayB = NULL;
@@ -183,6 +183,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
       }
       time_intl /= (nbtest-1);
 
+
       // convert solution back
       memcpy_bintl2ptp(Bsol, arrayB, M, N, batch_count);
 
@@ -309,6 +310,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 	hbw_free(arrayBblk);
 	hbw_free(work);
       }
+
       perf_blkintl = flops / time_bestblkintl / 1000;
       perf_blkintl_conv = flops / time_bestblkintl_conv / 1000;
       
@@ -343,4 +345,5 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
   free(bigB);
   return 0;
 }
+
 

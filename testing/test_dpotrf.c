@@ -4,6 +4,7 @@
 #include "bblas_interleaved.h"
 #include <sys/time.h>
 #include <omp.h>
+#include <math.h>
 #include <mkl.h>
 #include <math.h>
 #include <hbwmalloc.h>
