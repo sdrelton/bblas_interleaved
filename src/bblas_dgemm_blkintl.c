@@ -64,7 +64,7 @@ void bblas_dgemm_blkintl(
 	  //Convert Cp2p to block interleave C
 	  for (int pos = 0; pos < M*N; pos++) {
 	    int offset = startblkC + pos*block_size;
-	    //#pragma ivdep
+#pragma ivdep
 	    for (int idx = 0; idx < remainder; idx++) {
 	      arrayC[offset + idx] = Cp2p[blkidx * block_size + idx][pos];
 	    }
