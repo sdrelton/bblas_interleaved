@@ -49,12 +49,14 @@ void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 	    int Ajj = (n*(n+1)/2)*blkidx*block_size + ((2*n-j-1)*j/2 + j)*block_size;
 	    for (int i = 0; i < j; i++) {
 	      int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
-	      #pragma vector aligned
+	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < remainder; idx++) {
 		arrayAblk[Ajj + idx] -= arrayAblk[Aji +idx]*arrayAblk[Aji + idx];
 	      }
 	    }
-	    #pragma vector aligned
+	    #pragma ivdep
+	    #pragma simd  
 	    for (int idx = 0; idx < remainder; idx++) {
 	      arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
 	    }
@@ -64,7 +66,8 @@ void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 	      for (int k = 0; k <j; k++) {
 		int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
 		int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
-		#pragma vector aligned
+		#pragma ivdep
+		#pragma simd
 		for (int idx = 0; idx < remainder; idx++) {
 		  arrayAblk[Aij + idx] -= arrayAblk[Aik + idx]*arrayAblk[Ajk +idx];
 
@@ -101,11 +104,13 @@ void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 	    for (int i = 0; i < j; i++) {
 	      int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
 	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < block_size; idx++) {
 		arrayAblk[Ajj + idx] -= arrayAblk[Aji +idx]*arrayAblk[Aji + idx];
 	      }
 	    }
-	    #pragma vector aligned
+	    #pragma ivdep
+	    #pragma simd
 	    for (int idx = 0; idx < block_size; idx++) {
 	      arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
 	    }
@@ -116,12 +121,15 @@ void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 		int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
 		int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
 		#pragma vector aligned
+		#pragma ivdep
+		#pragma simd
 		for (int idx = 0; idx < block_size; idx++) {
 		  arrayAblk[Aij + idx] -= arrayAblk[Aik + idx]*arrayAblk[Ajk +idx];
 
 		}
 	      }
-	      #pragma vector aligned
+	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < block_size; idx++) {
 		arrayAblk[Aij +idx] = arrayAblk[Aij +idx]/arrayAblk[Ajj +idx];
 	      }

@@ -61,7 +61,7 @@ int main(int arc, char *argv[]) {
   int batch_count = BATCH_COUNT;
   int info = 0;
 
-  printf("M=K=N, perf_cblas, perf_batch_mkl, perf_blkintl, blocksize,\
+  printf("M,K,N, perf_cblas, perf_batch_mkl, perf_blkintl, blocksize,\
  ratio(batch_mkl/blkintl), error(batch_mkl), error(blk)\n");
 
   for (int M = 2; M < MAX_M; M++) {
@@ -175,8 +175,8 @@ int main(int arc, char *argv[]) {
     }
     double perf_blkintl = flops / time_bestblkintl / 1000;
     
-    printf("%d, %.2e, %.2e, %.2e, %d, %.2f, %.2e, %.2e\n",
-	   M, perf_cblas, perf_mkl, perf_blkintl,
+    printf("%d, %d, %d, %.2e, %.2e, %.2e, %d, %.2f, %.2e, %.2e\n",
+	   M, K, N, perf_cblas, perf_mkl, perf_blkintl,
 	   best_block, perf_blkintl/perf_mkl, error_mkl, error_blkintl);
     
     for (int idx = 0; idx < batch_count; idx++) {

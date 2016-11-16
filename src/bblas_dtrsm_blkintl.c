@@ -72,7 +72,8 @@ void bblas_dtrsm_blkintl(
 	      for (int i = k; i < m; i++) {
 		int Bij = m*n*blkidx*block_size + (j*m +i)*block_size ;
 		int Aik = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 +i )*block_size;
-	        #pragma ivdep			
+	        #pragma ivdep
+		#pragma simd
 		for (int idx = 0; idx < remainder; idx++) {
 		  if (k == 0 ) arrayBblk[Bij + idx] *= alpha; // alpha B
 		  if (i == k ){
@@ -120,7 +121,8 @@ void bblas_dtrsm_blkintl(
 	    for (int i = k; i < m; i++) {
 	      int Bij = m*n*blkidx*block_size + (j*m +i)*block_size ;
 	      int Aik = (m*(m+1)/2)*blkidx*block_size + ((2*m-k-1)*k/2 +i )*block_size;
-	      #pragma ivdep		      
+	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < block_size; idx++) {
 		if (k == 0 ) arrayBblk[Bij + idx] *= alpha; // alpha B
 		if (i == k ){

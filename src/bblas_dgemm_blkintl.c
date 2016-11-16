@@ -16,7 +16,6 @@ void bblas_dgemm_blkintl(
 			 double *work, int block_size,
 			 int batch_count, int info)
 {
-
   //Local variable for conversion
   double *__restrict arrayA = work;
   double * __restrict arrayB = (arrayA + M*K*batch_count);
@@ -76,6 +75,7 @@ void bblas_dgemm_blkintl(
 		int startB = startblkB + j*block_size*K + k*block_size;
 		int startC = startblkC + j*block_size*M + i*block_size;
 #pragma ivdep
+#pragma simd
 		for (int idx = 0; idx < remainder; idx++) {
 		  if (k == 0) {
 		    arrayC[startC + idx] *= beta;
@@ -130,6 +130,7 @@ void bblas_dgemm_blkintl(
 		int startB = startblkB + j*block_size*K + k*block_size;
 		int startC = startblkC + j*block_size*M + i*block_size;
 #pragma ivdep
+#pragma simd
 		for (int idx = 0; idx < block_size; idx++) {
 		  if (k == 0) {
 		    arrayC[startC + idx] *= beta;
