@@ -26,7 +26,6 @@ void bblas_dgemm_blkintl(
   int ldb = K;
   int ldc = M;
   
-  // Error checks go here
   int numblocks = batch_count / block_size;
   int remainder = 0;
   if (batch_count % block_size != 0)
@@ -55,21 +54,21 @@ void bblas_dgemm_blkintl(
 	  }	  
 	  //Convert Bp2p to block interleave B
 	  for (int pos = 0; pos < K*N; pos++) {
-	    int offset = startblkB + pos*block_size;
+	    offset = startblkB + pos*block_size;
 #pragma ivdep
 	    for (int idx = 0; idx < remainder; idx++) {
-	    arrayB[offset + idx] = Bp2p[blkidx * block_size + idx][pos];
+	      arrayB[offset + idx] = Bp2p[blkidx * block_size + idx][pos];
 	    }
 	  }	  
 	  //Convert Cp2p to block interleave C
 	  for (int pos = 0; pos < M*N; pos++) {
-	    int offset = startblkC + pos*block_size;
+	    offset = startblkC + pos*block_size;
 #pragma ivdep
 	    for (int idx = 0; idx < remainder; idx++) {
 	      arrayC[offset + idx] = Cp2p[blkidx * block_size + idx][pos];
 	    }
 	  }	  
-	  //Compute dgemm
+	  
 	  for (int i = 0; i < M; i++) {
 	    for (int j = 0; j < N; j++) {
 	      for (int k = 0; k < K; k++) {
@@ -89,12 +88,12 @@ void bblas_dgemm_blkintl(
 	  }
 	  //Convert C back to Cp2p
 	  for (int pos = 0; pos < M*N; pos++) {
-	    int offset = startblkC + pos*block_size;
+	    offset = startblkC + pos*block_size;
 #pragma ivdep
 	    for (int idx = 0; idx < remainder; idx++) {
 	      Cp2p[blkidx * block_size + idx][pos] = arrayC[offset + idx];
 	    }
-	  }	  
+	  }
 	  
 	} // end if
 	else {

@@ -137,6 +137,7 @@ int main(int arc, char *argv[]) {
     //==========================================
     double time_bestblkintl = 100000*time_mkl; //initialization
     int best_block = 0;
+    double error_blkintl;
     for (int BLOCK_SIZE = 8; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=8) {
       // Create block interleaved
       int blocksrequired = batch_count / BLOCK_SIZE;
@@ -162,6 +163,8 @@ int main(int arc, char *argv[]) {
 	gettime();
 	timediff = time - timediff;
 	if(testid != 0) time_blkintl += timediff;
+	// Calculate difference between results
+	if(testid != 0) error_blkintl =  get_error(Csol, Cp2p, ldc, N, batch_count);  
       }
       time_blkintl /= (nbtest-1);
       if ( time_blkintl < time_bestblkintl ) {
@@ -171,8 +174,6 @@ int main(int arc, char *argv[]) {
       hbw_free(work);
     }
     double perf_blkintl = flops / time_bestblkintl / 1000;
-    // Calculate difference between results
-    double error_blkintl =  get_error(Csol, Cp2p, ldc, N, batch_count);  
     
     printf("%d, %.2e, %.2e, %.2e, %d, %.2f, %.2e, %.2e\n",
 	   M, perf_cblas, perf_mkl, perf_blkintl,

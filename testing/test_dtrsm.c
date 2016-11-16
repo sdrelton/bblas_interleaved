@@ -9,7 +9,7 @@
 
 #define nbtest 20
 #define BATCH_COUNT 10000
-#define MAX_BLOCK_SIZE 256
+#define MAX_BLOCK_SIZE 512
 #define MAX_M 32
 #define MAX_RHS 1
 #define CACHECLEARSIZE 10000000
@@ -229,7 +229,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
       time_bestblkintl_conv = 100000*time_mkl; //initialization
       best_block_conv = 0;
 
-      for (int BLOCK_SIZE = 16; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=16) {
+      for (int BLOCK_SIZE = 8; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=8) {
 	
 	// Create block interleaved
 	int blocksrequired = batch_count / BLOCK_SIZE;
@@ -319,7 +319,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 
       printf("%d,%d,%.2e,%.2e,%.2f,%.2e,%.2f,%.2e,%d,%.2f,%.2e,%d,%.2f,%.2e\n", M,N, perf_mkl, perf_intl, perf_intl/perf_mkl,
 	     perf_intl_conv, perf_intl_conv/perf_mkl, perf_blkintl, best_block, perf_blkintl/perf_mkl,
-	     perf_blkintl_conv, best_block_conv, perf_blkintl_conv/perf_mkl, error_intl);   
+	     perf_blkintl_conv, best_block_conv, perf_blkintl_conv/perf_mkl, error_blkintl_conv);   
       
 
       // Hbw_Free memory
