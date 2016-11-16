@@ -18,8 +18,8 @@ void bblas_dgemm_blkintl(
 {
 
   //Local variable for conversion
-  double *arrayA = work;
-  double *arrayB = (arrayA + M*K*batch_count);
+  double *__restrict arrayA = work;
+  double * __restrict arrayB = (arrayA + M*K*batch_count);
   double *arrayC = (arrayB + K*N*batch_count);
   int offset;
   int lda = M;
