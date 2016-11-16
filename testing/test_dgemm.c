@@ -11,7 +11,7 @@
 
 #define nbtest 10
 #define BATCH_COUNT 10000
-#define MAX_BLOCK_SIZE 512
+#define MAX_BLOCK_SIZE 256
 #define MAX_M 32
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
@@ -98,9 +98,9 @@ int main(int arc, char *argv[]) {
       timediff = time;
       #pragma omp parallel for
       for (int idx = 0; idx < batch_count; idx++) {
-	cblas_dgemm(CblasColMajor, transA, transB,
-		    M, N, K, alpha, Ap2p[idx], lda,
-		    Bp2p[idx], ldb, beta, Cp2p[idx], ldc);
+      	cblas_dgemm(CblasColMajor, transA, transB,
+      		    M, N, K, alpha, Ap2p[idx], lda,
+      		    Bp2p[idx], ldb, beta, Cp2p[idx], ldc);
       }
       gettime();
       timediff = time - timediff;
@@ -121,9 +121,9 @@ int main(int arc, char *argv[]) {
       gettime();
       timediff = time;
       cblas_dgemm_batch(CblasColMajor, &transA, &transB,
-			&M, &N, &K, &alpha, Ap2p, &lda,
-			Bp2p, &ldb, &beta, Cp2p, &ldc,
-			1, &batch_count);     
+      			&M, &N, &K, &alpha, Ap2p, &lda,
+      			Bp2p, &ldb, &beta, Cp2p, &ldc,
+      			1, &batch_count);
       
       gettime();
       timediff = time - timediff;
@@ -132,7 +132,6 @@ int main(int arc, char *argv[]) {
     time_mkl /= (nbtest-1);
     perf_mkl = flops / time_mkl / 1000;
     double error_mkl =  get_error(Csol, Cp2p, ldc, N, batch_count);    
-    
     //===========================================
     //Block interleave with internal conversion
     //==========================================
@@ -147,7 +146,8 @@ int main(int arc, char *argv[]) {
 	  blocksrequired += 1;
 	  remainder = batch_count % BLOCK_SIZE;
 	}
-      work = (double*) hbw_malloc(sizeof(double)*3*M*M*BLOCK_SIZE*blocksrequired);
+      int lwork = (M*K + K*N + M*N)*BLOCK_SIZE*blocksrequired;
+      work = (double*) hbw_malloc(sizeof(double)*lwork);
       
       double time_blkintl =0.0;
       for (int testid = 0; testid < nbtest; testid++){

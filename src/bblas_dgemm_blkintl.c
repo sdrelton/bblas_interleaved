@@ -19,8 +19,8 @@ void bblas_dgemm_blkintl(
 
   //Local variable for conversion
   double *arrayA = work;
-  double *arrayB = (work + M*K*batch_count);
-  double *arrayC = (work +  M*(K+N)*batch_count);
+  double *arrayB = (arrayA + M*K*batch_count);
+  double *arrayC = (arrayB + K*N*batch_count);
   int offset;
   int lda = M;
   int ldb = K;
@@ -37,7 +37,7 @@ void bblas_dgemm_blkintl(
   
   if (transA == BblasNoTrans && transB == BblasNoTrans)
     {
-# pragma omp parallel for
+      # pragma omp parallel for
       for (int blkidx = 0; blkidx < numblocks; blkidx++) {
 	int startblkA = M*K*blkidx*block_size;
 	int startblkB = K*N*blkidx*block_size;
@@ -106,6 +106,7 @@ void bblas_dgemm_blkintl(
 	      arrayA[offset + idx] = Ap2p[blkidx * block_size + idx][pos];
 	    }
 	  }	  
+
 	  //Convert Bp2p to block interleave B
 	  for (int pos = 0; pos < K*N; pos++) {
 	    offset = startblkB + pos*block_size;

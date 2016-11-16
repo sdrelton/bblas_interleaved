@@ -107,7 +107,7 @@ int main()
       const enum BBLAS_TRANS transA = BblasNoTrans;
       const enum BBLAS_TRANS transB = BblasNoTrans;
       const double alpha = 1.0;
-      const double beta = 0.0;
+      const double beta = 2.0;
       const int lda = M;
       const int ldb = K;
       const int ldc = M;
