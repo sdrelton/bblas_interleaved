@@ -47,7 +47,7 @@ void bblas_dtrsm_intl(
 	    for (int i = k; i < m; i++) {
 	      int Bij = (j*m+i)*strideB;
 	      int Aik = ((2*m-k-1)*k/2 + i)*strideA;
-              #pragma omp parallel for
+              #pragma omp parallel for simd
 	      #pragma ivdep
 	      for (int idx = 0; idx < batch_count; idx++)
 		{

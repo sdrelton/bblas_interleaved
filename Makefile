@@ -3,7 +3,9 @@ include make.inc.icc
 BBLAS_SRC_LIST = bblas_dgemm_intl.c bblas_dgemm_intl_opt.c \
 	 	 bblas_dgemm_blkintl_expert.c bblas_dgemm_blkintl.c bblas_dtrsm_intl.c \
                  bblas_dtrsm_blkintl.c bblas_dtrsm_blkintl_expert.c \
-		 bblas_dtrsm_intl_expert.c bblas_dpotrf_blkintl.c
+		 bblas_dtrsm_intl_expert.c bblas_dpotrf_blkintl.c \
+		 bblas_dpotrf_blkintl_expert.c bblas_dpotrf_intl.c \
+		 bblas_dpotrf_intl_expert.c
 
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))

@@ -112,6 +112,19 @@ void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 				int block_size, double *work,
 				int batch_count, int info);
 
+void bblas_dpotrf_blkintl_expert(enum BBLAS_UPLO uplo, int n,
+				 double *arrayAblk, int lda,
+				 int block_size,
+				 int batch_count, int info);
+
+void bblas_dpotrf_intl(enum BBLAS_UPLO uplo, int n,
+		       double **Ap2p, int lda,
+		       double *work, int batch_count, int info);
+
+void bblas_dpotrf_intl_expert(enum BBLAS_UPLO uplo, int n,
+			      double *arrayA, int lda,
+			      int batch_count, int info);
+
 // Annexe routines for conversions and norm computation
 void memcpy_bptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count);
 void memcpy_bptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_count);
@@ -120,6 +133,8 @@ void memcpy_bintl2ptp(double **Bp2p, double *arrayB, int m, int n, int batch_cou
 void memcpy_bblkintl2ptp(double **Bp2p, double *arrayBblk, int m, int n, int block_size, int batch_count);
 void memcpy_aptp2intl(double *arrayA, double **Ap2p, int m, int batch_count);
 void memcpy_aptp2blkintl(double *arrayAblk, double **Ap2p, int m, int block_size, int batch_count);
+void memcpy_aintl2ptp(double **Ap2p, double *arrayA, int m, int batch_count);
+void memcpy_ablkintl2ptp(double **Ap2p, double *arrayAblk, int m, int block_size, int batch_count);
 double get_error(double **Bref, double **Bsol, int m, int n, int batch_count);
 
 #endif // BBLAS_D_INTL_H

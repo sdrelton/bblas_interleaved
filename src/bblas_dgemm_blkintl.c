@@ -35,7 +35,7 @@ void bblas_dgemm_blkintl(
   
   if (transA == BblasNoTrans && transB == BblasNoTrans)
     {
-      # pragma omp parallel for
+# pragma omp parallel for
       for (int blkidx = 0; blkidx < numblocks; blkidx++) {
 	int startblkA = M*K*blkidx*block_size;
 	int startblkB = K*N*blkidx*block_size;
