@@ -6,7 +6,7 @@ BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
 LDFLAGS = -fopenmp -lmemkind
 CC = icc
-CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -fast -ipo 
+CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native  -ipo 
 DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
 
 # BLAS LAPACK LAPACKE libraries

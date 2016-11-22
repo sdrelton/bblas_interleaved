@@ -33,34 +33,60 @@ void bblas_dtrsm_intl(
   // Convert Bp2p to interleaved layout
   memcpy_bptp2intl(arrayB, Bp2p, m, n, batch_count);
   
-  if ((side == BblasLeft)
-      && (uplo == BblasLower)
-      && (diag == BblasNonUnit)
-      && (trans == BblasNoTrans) ) {
+  if ((side != BblasLeft)
+      || (uplo != BblasLower)
+      || (diag != BblasNonUnit)) {
+    printf("Configuration not implemented yet\n");
+    return;
+  }
+  
+  if (trans == BblasNoTrans) {
     
     for (int j = 0; j < n; j++)
       {
 	for (int k = 0; k < m; k++)
 	  {
-	    int startB = (j*m + k)*strideB;
+	    int Bkj = (j*m + k)*strideB;
 	    int Akk = ((2*m-k-1)*k/2 + k)*strideA;
 	    for (int i = k; i < m; i++) {
 	      int Bij = (j*m+i)*strideB;
 	      int Aik = ((2*m-k-1)*k/2 + i)*strideA;
               #pragma omp parallel for simd
-	      #pragma ivdep
 	      for (int idx = 0; idx < batch_count; idx++)
 		{
 		  if (k == 0 ) arrayB[ Bij + idx] *= alpha; // alpha B
 		  if (i == k) {
-		    arrayB[startB + idx] /= arrayA[Akk + idx];
+		    arrayB[Bkj + idx] /= arrayA[Akk + idx];
 		    continue;
-		      } 
-		  arrayB[Bij + idx] -=  arrayB[startB + idx]*arrayA[ Aik + idx];
+		  } 
+		  arrayB[Bij + idx] -=  arrayB[Bkj + idx]*arrayA[ Aik + idx];
 		}
 	    }
 	  }
       }
+  } else {
+    for (int j = 0;  j < n; j++) {
+      for (int i = m-1; i >= 0; i--) {
+	int Bij = (j*m + i)*strideB;
+	int Aii = ((2*m-i-1)*i/2 + i)*strideA;
+	for (int k = i; k <= m; k++) {
+	  int Bkj = (j*m+k)*strideB;
+	  int Aki = ((2*m-i-1)*i/2 + k)*strideA;
+#pragma omp parallel for simd
+	  for (int idx = 0; idx < batch_count; idx++)  {
+	    if (k == i) {
+	      arrayB[Bij + idx] *= alpha; // alpha B
+	      continue;
+	    }
+	    if  (k == m) {
+	      arrayB[Bij + idx] /= arrayA[Aii + idx];
+	      continue;
+	    }
+	    arrayB[Bij + idx] -=  arrayB[Bkj + idx]*arrayA[ Aki + idx];
+	  }
+	}
+      }
+    }
   }
   // convert solution back
   memcpy_bintl2ptp(Bp2p, arrayB, m, n, batch_count);
