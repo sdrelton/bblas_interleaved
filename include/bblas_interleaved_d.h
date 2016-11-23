@@ -107,6 +107,8 @@ void bblas_dtrsm_blkintl(
 		       double **Bp2p, int  ldb, int block_size,
 		       double *work, int batch_count, int info);
 
+
+//Lapacke routines
 void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 				double **Ap2p, int lda,
 				int block_size, double *work,
@@ -122,14 +124,19 @@ void bblas_dpotrf_intl(enum BBLAS_UPLO uplo, int n,
 		       double *work, int batch_count, int info);
 
 void bblas_dpotrf_intl_expert(enum BBLAS_UPLO uplo, int n,
-			      double *arrayA, int lda,
-			      int batch_count, int info);
+			      double *arrayA, int batch_count, int info);
 
 
-//Lapacke routines
 void bblas_dposv_intl_expert(enum BBLAS_UPLO uplo, int m, int n,
-    double alpha, double *arrayA, double *arrayB,
-    int batch_count, int info);
+                             double alpha, double *arrayA, double *arrayB,
+                             int batch_count, int info);
+
+void bblas_dposv_intl(enum BBLAS_UPLO uplo,
+                      int m, int n, double alpha,
+                      double **Ap2p, int lda,
+                      double **Bp2p, int ldb,
+                      double *work, int batch_count, int info);
+
 
 // Annexe routines for conversions and norm computation
 void memcpy_bptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count);

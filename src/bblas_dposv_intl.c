@@ -1,29 +1,35 @@
 #include "bblas_interleaved.h"
-#include<stdio.h>
 #include <mkl.h>
+#include<stdio.h>
 
 // Assumes interleaved in column major order
 
-void bblas_dposv_intl_expert(
-    enum BBLAS_UPLO uplo,
-    int m,
-    int n,
-    double alpha,
-    double *arrayA,
-    double *arrayB,
-    int batch_count, int info)
+void bblas_dposv_intl(enum BBLAS_UPLO uplo,
+                      int m, int n, double alpha,
+                      double **Ap2p, int lda,
+                      double **Bp2p, int ldb,
+                      double *work, int batch_count, int info)
 {
 	// Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
     //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
 	// Note: arrayB(i,k,idx) = arrayB[k*batch_count*M + i*batch_count + idx]
   
+    double *arrayA = work;
+    double *arrayB = (work + m*m*batch_count);
+
+    // Convert Ap2p to interleaved layout
+    memcpy_aptp2intl(arrayA, Ap2p, lda, batch_count);
+  
+    // Convert Bp2p to interleaved layout
+    memcpy_bptp2intl(arrayB, Bp2p, ldb, n, batch_count);
+
+
     if (uplo != BblasLower) {
         printf("Configuration not implemented yet\n");
         return;
     }
     
-    int lda = m;
     //Compute the Cholesky factorization A = L*L'
     bblas_dpotrf_intl_expert(CblasLower, m, arrayA,
                              batch_count, info);
@@ -41,6 +47,8 @@ void bblas_dposv_intl_expert(
     bblas_dtrsm_intl_expert(BblasLeft, uplo, CblasTrans, CblasNonUnit,
                             m, n, alpha, arrayA, arrayB,
                             batch_count, info);
-      info = BBLAS_SUCCESS;
+    // convert solution back
+    memcpy_bintl2ptp(Bp2p, arrayB, m, n, batch_count);
+    info = BBLAS_SUCCESS;
 }
-#undef COMPLEX
+

@@ -122,7 +122,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
       clearcache();
       gettime();
       timediff = time;
-      bblas_dpotrf_intl_expert(CblasLower, N, arrayA, lda,
+      bblas_dpotrf_intl_expert(CblasLower, N, arrayA,
 			       batch_count, info);
       gettime();
       timediff = time - timediff;

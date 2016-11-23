@@ -7,10 +7,10 @@
 #include <mkl.h>
 #include <hbwmalloc.h>
 
-#define nbtest 20
+#define nbtest 10
 #define BATCH_COUNT 10000
-#define MAX_BLOCK_SIZE 256
-#define MAX_M 32
+#define MAX_BLOCK_SIZE 512
+#define MAX_M 64
 #define MAX_RHS 1
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
@@ -95,7 +95,7 @@ int main(int arc, char *argv[])
 bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\
 ratio(mkl/(blkintl+conv)), error(intl)\n");
 
-    for (int M = 2; M < 33; M++){
+    for (int M = 63; M <= MAX_M ; M++){
         for (int N = 1; N <= MAX_RHS; N++){
             lda = M;
             ldb = M;

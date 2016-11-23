@@ -6,13 +6,13 @@
 // Assumes interleaved in column major order
 
 void bblas_dpotrf_intl_expert(enum BBLAS_UPLO uplo, int n,
-			      double *arrayA, int lda,
-			      int batch_count, int info)
+			      double *arrayA, int batch_count, int info)
 {
   // Error checks go here
   // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
   //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
 
+    int lda = n;
   if (uplo == BblasLower) {
 
     //Compute A(j,j) =  sqrt(A(j,j) -sum(A(j,i)*A(j,i))
