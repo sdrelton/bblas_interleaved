@@ -1,10 +1,12 @@
 include make.inc.icc
 
-BBLAS_SRC_LIST = bblas_zgemm_batch_intl.c bblas_zgemm_batch_intl_opt.c \
-                 bblas_dgemm_batch_intl.c bblas_dgemm_batch_intl_opt.c \
-	 	 bblas_dgemm_batch_blkintl.c bblas_dtrsm_batch_intl.c \
-                 bblas_dtrsm_batch_blkintl.c bblas_dtrsm_batch_blkintl_expert.c \
-		 bblas_dtrsm_batch_intl_expert.c bblas_dpotrf_batch_blkintl.c
+BBLAS_SRC_LIST = bblas_dgemm_intl.c bblas_dgemm_intl_opt.c \
+	 	 bblas_dgemm_blkintl_expert.c bblas_dgemm_blkintl.c bblas_dtrsm_intl.c \
+         bblas_dtrsm_blkintl.c bblas_dtrsm_blkintl_expert.c \
+		 bblas_dtrsm_intl_expert.c bblas_dpotrf_blkintl.c \
+		 bblas_dpotrf_blkintl_expert.c bblas_dpotrf_intl.c \
+		 bblas_dpotrf_intl_expert.c \
+		 bblas_dposv_intl_expert.c bblas_dposv_intl.c \
 
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
@@ -56,4 +58,4 @@ test_dpotrf: $(OBJECTS_DPOTRF)
 .SILENT: clean
 clean:
 	-@rm $(BBLAS_SRC_DIR)/*.o $(BBLAS_SRC_DIR)/*~ 2>/dev/null || true
-	cd  $(BBLAS_TEST_DIR); @rm test_zgemm test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf *~ 2>/dev/null || true
+	cd  $(BBLAS_TEST_DIR); @rm test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf *~ 2>/dev/null || true

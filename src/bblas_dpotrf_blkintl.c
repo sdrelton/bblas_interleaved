@@ -5,7 +5,7 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
+void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 			       double **Ap2p, int lda,
 			       int block_size, double *work,
 			       int batch_count, int info)
@@ -39,7 +39,7 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	  for (int j = 0; j < n; j++)
 	    for (int i = j; i < n; i++) {
 	      offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
-	      #pragma ivdep
+	      #pragma vector aligned
 	      for (int idx = 0; idx < remainder; idx++) {
 		arrayAblk[offset + idx] = Ap2p[blkidx * block_size + idx][j*lda+i];
 	      }
@@ -50,11 +50,13 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	    for (int i = 0; i < j; i++) {
 	      int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
 	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < remainder; idx++) {
 		arrayAblk[Ajj + idx] -= arrayAblk[Aji +idx]*arrayAblk[Aji + idx];
 	      }
 	    }
 	    #pragma ivdep
+	    #pragma simd  
 	    for (int idx = 0; idx < remainder; idx++) {
 	      arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
 	    }
@@ -65,12 +67,13 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 		int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
 		int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
 		#pragma ivdep
+		#pragma simd
 		for (int idx = 0; idx < remainder; idx++) {
 		  arrayAblk[Aij + idx] -= arrayAblk[Aik + idx]*arrayAblk[Ajk +idx];
 
 		}
 	      }
-	      #pragma ivdep
+	      #pragma vector aligned
 	      for (int idx = 0; idx < remainder; idx++) {
 		arrayAblk[Aij +idx] = arrayAblk[Aij +idx]/arrayAblk[Ajj +idx];
 	      }
@@ -80,7 +83,7 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	  for (int j = 0; j < n; j++)
 	    for (int i = j; i < n; i++) {
 	      offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
-	      #pragma ivdep
+	      #pragma vector aligned
 	      for (int idx = 0; idx < remainder; idx++) {
 		Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];
 	      }
@@ -90,7 +93,7 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	for (int j = 0; j < n; j++)
 	  for (int i = j; i < n; i++) {
 	    offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
-	    #pragma ivdep
+	    #pragma vector aligned
 	    for (int idx = 0; idx < block_size; idx++) {
 	      arrayAblk[offset + idx] = Ap2p[blkidx * block_size + idx][j*lda+i];
 	    }
@@ -101,11 +104,13 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	    for (int i = 0; i < j; i++) {
 	      int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
 	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < block_size; idx++) {
 		arrayAblk[Ajj + idx] -= arrayAblk[Aji +idx]*arrayAblk[Aji + idx];
 	      }
 	    }
 	    #pragma ivdep
+	    #pragma simd
 	    for (int idx = 0; idx < block_size; idx++) {
 	      arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
 	    }
@@ -115,13 +120,16 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	      for (int k = 0; k <j; k++) {
 		int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
 		int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
+		#pragma vector aligned
 		#pragma ivdep
+		#pragma simd
 		for (int idx = 0; idx < block_size; idx++) {
 		  arrayAblk[Aij + idx] -= arrayAblk[Aik + idx]*arrayAblk[Ajk +idx];
 
 		}
 	      }
 	      #pragma ivdep
+	      #pragma simd
 	      for (int idx = 0; idx < block_size; idx++) {
 		arrayAblk[Aij +idx] = arrayAblk[Aij +idx]/arrayAblk[Ajj +idx];
 	      }
@@ -131,7 +139,7 @@ void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
 	for (int j = 0; j < n; j++)
 	  for (int i = j; i < n; i++) {
 	    offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
-	    #pragma ivdep
+	    #pragma vector aligned
 	    for (int idx = 0; idx < block_size; idx++) {
 	      Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];
 	    }

@@ -7,7 +7,7 @@
 /*
  * Declarations of level 3 batched BLAS - alphabetical order
  */
-void bblas_dgemm_batch_intl(
+void bblas_dgemm_intl(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -20,7 +20,7 @@ void bblas_dgemm_batch_intl(
 	double *arrayC, const int strideC,
 	const int batch_count, int info);
 
-void bblas_dgemm_batch_intl_opt(
+void bblas_dgemm_intl_opt(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -33,7 +33,20 @@ void bblas_dgemm_batch_intl_opt(
 	double *arrayC, const int strideC,
 	const int batch_count, int info);
 
-void bblas_dgemm_batch_blkintl(
+void bblas_dgemm_blkintl(
+			 enum BBLAS_TRANS transA,
+			 enum BBLAS_TRANS transB,
+			 int M,
+			 int N,
+			 int K,
+			 double alpha,
+			 const double **Ap2p,
+			 const double **Bp2p,
+			 double beta, double **Cp2p,
+			 double *work, int block_size,
+			 int batch_count, int info);
+
+void bblas_dgemm_blkintl_expert(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -46,7 +59,7 @@ void bblas_dgemm_batch_blkintl(
 	double *arrayC, const int block_size,
 	const int batch_count, int info);
 
-void bblas_dtrsm_batch_intl_expert(
+void bblas_dtrsm_intl_expert(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -54,11 +67,11 @@ void bblas_dtrsm_batch_intl_expert(
     int m,
     int n,
     double alpha,
-    const double *arrayA, int strideA,
-    double *arrayB, int strideB,
+    const double *arrayA,
+    double *arrayB,
     int batch_count, int info);
 
-void bblas_dtrsm_batch_blkintl_expert(
+void bblas_dtrsm_blkintl_expert(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -70,7 +83,7 @@ void bblas_dtrsm_batch_blkintl_expert(
     double *arrayB, int block_size,
     int batch_count, int info);
 
-void bblas_dtrsm_batch_intl(
+void bblas_dtrsm_intl(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
@@ -82,7 +95,7 @@ void bblas_dtrsm_batch_intl(
     double **Bp2p, int ldb,
     double *work, int batch_count, int info);
 
-void bblas_dtrsm_batch_blkintl(
+void bblas_dtrsm_blkintl(
 		       enum BBLAS_SIDE  side,
 		       enum BBLAS_UPLO uplo,
 		       enum BBLAS_TRANS trans,
@@ -94,11 +107,48 @@ void bblas_dtrsm_batch_blkintl(
 		       double **Bp2p, int  ldb, int block_size,
 		       double *work, int batch_count, int info);
 
-void bblas_dpotrf_batch_blkintl(enum BBLAS_UPLO uplo, int n,
+
+//Lapacke routines
+void bblas_dpotrf_blkintl(enum BBLAS_UPLO uplo, int n,
 				double **Ap2p, int lda,
 				int block_size, double *work,
 				int batch_count, int info);
 
+void bblas_dpotrf_blkintl_expert(enum BBLAS_UPLO uplo, int n,
+				 double *arrayAblk, int lda,
+				 int block_size,
+				 int batch_count, int info);
+
+void bblas_dpotrf_intl(enum BBLAS_UPLO uplo, int n,
+		       double **Ap2p, int lda,
+		       double *work, int batch_count, int info);
+
+void bblas_dpotrf_intl_expert(enum BBLAS_UPLO uplo, int n,
+			      double *arrayA, int batch_count, int info);
+
+
+void bblas_dposv_intl_expert(enum BBLAS_UPLO uplo, int m, int n,
+                             double *arrayA, double *arrayB,
+                             int batch_count, int info);
+
+void bblas_dposv_intl(enum BBLAS_UPLO uplo,
+                      int m, int n,
+                      double **Ap2p, int lda,
+                      double **Bp2p, int ldb,
+                      double *work, int batch_count, int info);
+
+void bblas_posv_blkintl_expert(enum BBLAS_UPLO uplo,
+                               int m, int n,
+                               double *arrayAblk,
+                               double *arrayBlk, int block_size,
+                               int batch_count, int info);
+
+void bblas_posv_blkintl(enum BBLAS_UPLO uplo,
+                        int m, int n,
+                        double **Ap2p, int lda,
+                        double **Bp2p, int  ldb,
+                        int block_size, double *work,
+                        int batch_count, int info);
 // Annexe routines for conversions and norm computation
 void memcpy_bptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count);
 void memcpy_bptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_count);
@@ -107,6 +157,8 @@ void memcpy_bintl2ptp(double **Bp2p, double *arrayB, int m, int n, int batch_cou
 void memcpy_bblkintl2ptp(double **Bp2p, double *arrayBblk, int m, int n, int block_size, int batch_count);
 void memcpy_aptp2intl(double *arrayA, double **Ap2p, int m, int batch_count);
 void memcpy_aptp2blkintl(double *arrayAblk, double **Ap2p, int m, int block_size, int batch_count);
+void memcpy_aintl2ptp(double **Ap2p, double *arrayA, int m, int batch_count);
+void memcpy_ablkintl2ptp(double **Ap2p, double *arrayAblk, int m, int block_size, int batch_count);
 double get_error(double **Bref, double **Bsol, int m, int n, int batch_count);
 
 #endif // BBLAS_D_INTL_H

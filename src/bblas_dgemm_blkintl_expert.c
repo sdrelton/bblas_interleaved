@@ -3,7 +3,7 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dgemm_batch_blkintl(
+void bblas_dgemm_blkintl_expert(
 	const enum BBLAS_TRANS transA,
 	const enum BBLAS_TRANS transB,
 	const int M,
@@ -45,6 +45,7 @@ void bblas_dgemm_batch_blkintl(
 							int startA = M*K*blkidx*block_size + k*block_size*M + i*block_size;
 							int startB = K*N*blkidx*block_size + j*block_size*K + k*block_size;
 							int startC = M*N*blkidx*block_size + j*block_size*M + i*block_size;
+							#pragma vector aligned
 							for (int idx = 0; idx < remainder; idx++)
 							{
 								if (k == 0)
@@ -69,6 +70,7 @@ void bblas_dgemm_batch_blkintl(
 							int startA = M*K*blkidx*block_size + k*block_size*M + i*block_size;
 							int startB = K*N*blkidx*block_size + j*block_size*K + k*block_size;
 							int startC = M*N*blkidx*block_size + j*block_size*M + i*block_size;
+							#pragma vector aligned
 							for (int idx = 0; idx < block_size; idx++)
 							{
 								if (k == 0)

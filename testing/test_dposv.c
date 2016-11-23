@@ -59,6 +59,8 @@ int main(int arc, char *argv[])
     // Now create pointer-to-pointer batch of random matrices
     double **Ap2p =
         (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
+    double **Aref =
+        (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
     double **Bp2p =
         (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
     double **Xp2p =
@@ -106,9 +108,10 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             {
                 // Generate A
                 Ap2p[idx] = (double*) hbw_malloc(sizeof(double) * M*M);
-                LAPACKE_dlarnv_work(IONE, ISEED, M*M, Ap2p[idx]);
+                Aref[idx] = (double*) hbw_malloc(sizeof(double) * M*M);
+                LAPACKE_dlarnv_work(IONE, ISEED, M*M, Aref[idx]);
                 for (int i = 0; i < M; i++)
-                    Ap2p[idx][i*M+i] +=1;
+                    Aref[idx][i*M+i] +=1;
 
                 // Generate B
                 Bp2p[idx] = (double*) hbw_malloc(sizeof(double) * M*N);
@@ -123,6 +126,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             //=================================================
             time_mkl =0.0;
             for (int testid = 0; testid < nbtest; testid++){
+                memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
                 memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
                 clearcache();    
                 gettime();
@@ -131,9 +135,8 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 #pragma omp parallel for
                 for (int idx = 0; idx < batch_count; idx++)
                 {
-                    cblas_dtrsm(
-                        BblasColMajor, side, uplo, CblasTrans, diag,
-                        M, N, alpha, (const double**)Ap2p[idx], lda, Bp2p[idx], ldb);
+                    LAPACKE_dposv(LAPACK_COL_MAJOR, uplo, M, N,
+                                  Ap2p[idx], lda, Bp2p[idx], ldb);
                 }
       
                 gettime();

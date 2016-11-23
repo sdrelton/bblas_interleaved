@@ -75,6 +75,24 @@ void memcpy_aptp2intl(double *arrayA, double **Ap2p, int m, int batch_count) {
   
 }
 
+
+void memcpy_aintl2ptp(double **Ap2p, double *arrayA, int m, int batch_count) {
+  int lda = m;
+  for (int j = 0; j < m; j++) {
+    for (int i = j; i < m; i++ ) {
+      int offset = (j*(2*m-j-1)/2 + i)*batch_count;
+      #pragma omp parallel for
+      #pragma ivdep
+      for (int idx = 0; idx < batch_count; idx++)
+	{
+	  Ap2p[idx][j*lda+i] = arrayA[offset + idx];
+	}
+    }
+  }
+  
+}
+
+
 void memcpy_aptp2blkintl(double *arrayAblk, double **Ap2p, int m, int block_size, int batch_count) {
 
   int blocksrequired = batch_count / block_size;
@@ -116,6 +134,51 @@ void memcpy_aptp2blkintl(double *arrayAblk, double **Ap2p, int m, int block_size
 	}
     }
 }
+
+
+
+void memcpy_ablkintl2ptp(double **Ap2p, double *arrayAblk, int m, int block_size, int batch_count) {
+
+  int blocksrequired = batch_count / block_size;
+  int remainder = 0;
+  int lda = m;
+  int startpos;
+  if (batch_count % block_size != 0)
+    {
+      blocksrequired += 1;
+      remainder = batch_count % block_size;
+    }
+
+  #pragma omp parallel for
+  #pragma ivdep
+  for (int blkidx = 0; blkidx < blocksrequired; blkidx++)
+    {
+      startpos = blkidx * block_size * m*(m+1)/2;
+      if ((blkidx == blocksrequired - 1) && (remainder != 0))
+	{
+	  // Remainders
+	  for (int j = 0; j < m; j++)
+	    for (int i = j; i < m; i++) {
+	      int offset = startpos + (j*(2*m-j-1)/2 + i)*block_size;
+	      for (int idx = 0; idx < remainder; idx++) {
+		Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];
+	      }
+	    }
+	}
+      else
+	{
+	  for (int j = 0; j < m; j++) 
+	    for (int i = j; i < m; i++ ) {
+	      int offset = startpos + (j*(2*m-j-1)/2 + i)*block_size;
+	      for (int idx = 0; idx < block_size; idx++)
+		{
+		  Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];
+		}
+	    }
+	}
+    }
+}
+
 
 
 void memcpy_bintl2ptp(double **Bp2p, double *arrayB, int m, int n, int batch_count) {
