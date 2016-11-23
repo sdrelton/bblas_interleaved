@@ -116,7 +116,7 @@ ratio(mkl/(blkintl+conv)), error(blkintl)\n");
 
       time_bestblkintl = 100000*time_mkl; //initialization
       double best_block = 0;
-      for (int BLOCK_SIZE = 16; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=16) {
+      for (int BLOCK_SIZE = 8; BLOCK_SIZE <= MAX_BLOCK_SIZE; BLOCK_SIZE +=8) {
 	
 	// Create block interleaved
 	int blocksrequired = batch_count / BLOCK_SIZE;
