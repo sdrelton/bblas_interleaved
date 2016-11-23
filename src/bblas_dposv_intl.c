@@ -5,7 +5,7 @@
 // Assumes interleaved in column major order
 
 void bblas_dposv_intl(enum BBLAS_UPLO uplo,
-                      int m, int n, double alpha,
+                      int m, int n,
                       double **Ap2p, int lda,
                       double **Bp2p, int ldb,
                       double *work, int batch_count, int info)
@@ -17,7 +17,7 @@ void bblas_dposv_intl(enum BBLAS_UPLO uplo,
   
     double *arrayA = work;
     double *arrayB = (work + m*m*batch_count);
-
+    int alpha = 1.0;
     // Convert Ap2p to interleaved layout
     memcpy_aptp2intl(arrayA, Ap2p, lda, batch_count);
   
@@ -49,6 +49,8 @@ void bblas_dposv_intl(enum BBLAS_UPLO uplo,
                             batch_count, info);
     // convert solution back
     memcpy_bintl2ptp(Bp2p, arrayB, m, n, batch_count);
+    // convert factorization back
+    memcpy_aintl2ptp(Ap2p, arrayA, n, batch_count);
     info = BBLAS_SUCCESS;
 }
 

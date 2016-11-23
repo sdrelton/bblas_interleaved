@@ -128,16 +128,27 @@ void bblas_dpotrf_intl_expert(enum BBLAS_UPLO uplo, int n,
 
 
 void bblas_dposv_intl_expert(enum BBLAS_UPLO uplo, int m, int n,
-                             double alpha, double *arrayA, double *arrayB,
+                             double *arrayA, double *arrayB,
                              int batch_count, int info);
 
 void bblas_dposv_intl(enum BBLAS_UPLO uplo,
-                      int m, int n, double alpha,
+                      int m, int n,
                       double **Ap2p, int lda,
                       double **Bp2p, int ldb,
                       double *work, int batch_count, int info);
 
+void bblas_posv_blkintl_expert(enum BBLAS_UPLO uplo,
+                               int m, int n,
+                               double *arrayAblk,
+                               double *arrayBlk, int block_size,
+                               int batch_count, int info);
 
+void bblas_posv_blkintl(enum BBLAS_UPLO uplo,
+                        int m, int n,
+                        double **Ap2p, int lda,
+                        double **Bp2p, int  ldb,
+                        int block_size, double *work,
+                        int batch_count, int info);
 // Annexe routines for conversions and norm computation
 void memcpy_bptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count);
 void memcpy_bptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_count);

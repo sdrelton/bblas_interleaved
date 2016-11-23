@@ -4,14 +4,12 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dposv_intl_expert(
-    enum BBLAS_UPLO uplo,
-    int m,
-    int n,
-    double alpha,
-    double *arrayA,
-    double *arrayB,
-    int batch_count, int info)
+void bblas_dposv_intl_expert(enum BBLAS_UPLO uplo,
+                             int m,
+                             int n,
+                             double *arrayA,
+                             double *arrayB,
+                             int batch_count, int info)
 {
 	// Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
@@ -24,6 +22,7 @@ void bblas_dposv_intl_expert(
     }
     
     int lda = m;
+    int alpha = 1.0;
     //Compute the Cholesky factorization A = L*L'
     bblas_dpotrf_intl_expert(CblasLower, m, arrayA,
                              batch_count, info);

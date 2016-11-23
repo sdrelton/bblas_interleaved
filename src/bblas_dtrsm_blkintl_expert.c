@@ -12,7 +12,7 @@ void bblas_dtrsm_blkintl_expert(
     int m,
     int n,
     double alpha,
-    const double * arrayAblk,
+    const double *arrayAblk,
     double *arrayBblk, int block_size,
     int batch_count, int info)
 {
