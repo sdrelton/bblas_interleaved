@@ -39,10 +39,10 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
             //==============================================
             
             //Compute A(j,j) =  sqrt(A(j,j) -sum(A(j,i)*A(j,i))
-            for (int j = 0; j < n; j++) {
-                int Ajj = (n*(n+1)/2)*blkidx*block_size + ((2*n-j-1)*j/2 + j)*block_size;
+            for (int j = 0; j < m; j++) {
+                int Ajj = (m*(m+1)/2)*blkidx*block_size + ((2*m-j-1)*j/2 + j)*block_size;
                 for (int i = 0; i < j; i++) {
-                    int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
+                    int Aji = (m*(m+1)/2)*blkidx*block_size + ((2*m-i-1)*i/2 + j)*block_size;
                     #pragma ivdep
                     #pragma simd
                     for (int idx = 0; idx < remainder; idx++) {
@@ -56,16 +56,15 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
                     arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
                 }
                 //Update
-                for (int i = j+1; i < n; i++) {
-                    int Aij = startposA + ((2*n-j-1)*j/2 +i )*block_size;
+                for (int i = j+1; i < m; i++) {
+                    int Aij = startposA + ((2*m-j-1)*j/2 +i )*block_size;
                     for (int k = 0; k <j; k++) {
-                        int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
-                        int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
+                        int Ajk = startposA + ((2*m-k-1)*k/2 + j)*block_size;
+                        int Aik = startposA + ((2*m-k-1)*k/2 + i)*block_size;
                         #pragma ivdep
                         #pragma simd
                         for (int idx = 0; idx < remainder; idx++) {
                             arrayAblk[Aij + idx] -= arrayAblk[Aik + idx]*arrayAblk[Ajk +idx];
-                                
                         }
                     }
                     #pragma vector aligned
@@ -75,7 +74,7 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
                 }
             }
             //========================================
-            //Solve U'*X = B, overwriting B with X.
+            //Solve U*X = B, overwriting B with X.
             //========================================
             for (int j = 0; j < n; j++) {
                 for (int k = 0; k < m; k++) {
@@ -99,7 +98,7 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
                 }
             }
             //=====================================
-            //Solve U*X = B, overwriting B with X.
+            //Solve U'*X = B, overwriting B with X.
             //====================================
             for (int j = 0; j < n; j++) {
                 for (int i = m-1; i >= 0; i--) {
@@ -129,28 +128,27 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
             //==============================================
 
             //Compute A(j,j) =  sqrt(A(j,j) -sum(A(j,i)*A(j,i))
-            for (int j = 0; j < n; j++) {
-                int Ajj = (n*(n+1)/2)*blkidx*block_size + ((2*n-j-1)*j/2 + j)*block_size;
+            for (int j = 0; j < m; j++) {
+                int Ajj = (m*(m+1)/2)*blkidx*block_size + ((2*m-j-1)*j/2 + j)*block_size;
                 for (int i = 0; i < j; i++) {
-                    int Aji = (n*(n+1)/2)*blkidx*block_size + ((2*n-i-1)*i/2 + j)*block_size;
+                    int Aji = (m*(m+1)/2)*blkidx*block_size + ((2*m-i-1)*i/2 + j)*block_size;
                     #pragma ivdep
                     #pragma simd
                     for (int idx = 0; idx < block_size; idx++) {
                         arrayAblk[Ajj + idx] -= arrayAblk[Aji +idx]*arrayAblk[Aji + idx];
                     }
                 }
-                    
                 #pragma ivdep
                 #pragma simd  
                 for (int idx = 0; idx < block_size; idx++) {
                     arrayAblk[Ajj +idx ] = sqrt(arrayAblk[Ajj +idx ]);
                 }
                 //Update
-                for (int i = j+1; i < n; i++) {
-                    int Aij = startposA + ((2*n-j-1)*j/2 +i )*block_size;
+                for (int i = j+1; i < m; i++) {
+                    int Aij = startposA + ((2*m-j-1)*j/2 +i )*block_size;
                     for (int k = 0; k <j; k++) {
-                        int Ajk = startposA + ((2*n-k-1)*k/2 + j)*block_size;
-                        int Aik = startposA + ((2*n-k-1)*k/2 + i)*block_size;
+                        int Ajk = startposA + ((2*m-k-1)*k/2 + j)*block_size;
+                        int Aik = startposA + ((2*m-k-1)*k/2 + i)*block_size;
                         #pragma ivdep
                         #pragma simd
                         for (int idx = 0; idx < block_size; idx++) {
@@ -165,7 +163,7 @@ void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
                 }
             }
             //========================================
-            //Solve U'*X = B, overwriting B with X.
+            //Solve U*X = B, overwriting B with X.
             //========================================
             for (int j = 0; j < n; j++) {
                 for (int k = 0; k < m; k++) {
