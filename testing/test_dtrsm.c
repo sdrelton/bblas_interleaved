@@ -10,7 +10,8 @@
 #define nbtest 10
 #define BATCH_COUNT 10000
 #define MAX_BLOCK_SIZE 512
-#define MAX_M 64
+#define MAX_M 32
+#define MIN_M 2
 #define MAX_RHS 1
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
@@ -95,7 +96,7 @@ int main(int arc, char *argv[])
 bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\
 ratio(mkl/(blkintl+conv)), error(intl)\n");
 
-    for (int M = 63; M <= MAX_M ; M++){
+    for (int M = MIN_M; M <= MAX_M ; M++){
         for (int N = 1; N <= MAX_RHS; N++){
             lda = M;
             ldb = M;

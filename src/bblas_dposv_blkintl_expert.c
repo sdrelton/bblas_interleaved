@@ -1,20 +1,21 @@
 #include "bblas_interleaved.h"
 #include<stdio.h>
+# include <math.h>
 #define COMPLEX
 
 // Assumes interleaved in column major order
 
-void bblas_posv_blkintl_expert(enum BBLAS_UPLO uplo,
+void bblas_dposv_blkintl_expert(enum BBLAS_UPLO uplo,
                                int m, int n,
                                double *arrayAblk,
-                               double *arrayBlk, int block_size,
+                               double *arrayBblk, int block_size,
                                int batch_count, int info) {
     // Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
     //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
     
     int offset;
-    int alpha = 1.0;
+    double alpha = 1.0;
     int numblocks = batch_count / block_size;
     int remainder = 0;
     if (batch_count % block_size != 0) {

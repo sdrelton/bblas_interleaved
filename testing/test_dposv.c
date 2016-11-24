@@ -9,8 +9,9 @@
 
 #define nbtest 10
 #define BATCH_COUNT 10000
-#define MAX_BLOCK_SIZE 512
+#define MAX_BLOCK_SIZE 256
 #define MAX_M 64
+#define MIN_M 2
 #define MAX_RHS 1
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
@@ -71,11 +72,7 @@ int main(int arc, char *argv[])
         (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
 
     // Setup parameters
-    enum BBLAS_SIDE  side = BblasLeft;
-    enum BBLAS_UPLO uplo  = BblasLower;
-    enum BBLAS_DIAG diag  = BblasNonUnit;
-    const double alpha = 2.0;
-    const double beta = 0.0;
+    enum BBLAS_UPLO uplo  = CblasLower;
     const int batch_count = BATCH_COUNT;
     int info = 0;
     int lda;
@@ -93,11 +90,11 @@ int main(int arc, char *argv[])
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
-    printf("M,N,perf(Cblas +OMP),perf(full intl), ratio(mkl/intl), perf(intl+conv), ratio(mkl/intl+conv) perf(blkintl),\
+    printf("M,N,perf(LAPACKE +OMP),perf(full intl), ratio(mkl/intl), perf(intl+conv), ratio(mkl/intl+conv) perf(blkintl),\
 bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\
 ratio(mkl/(blkintl+conv)), error(intl)\n");
 
-    for (int M = 63; M <= MAX_M ; M++){
+    for (int M = MIN_M; M <= MAX_M ; M++){
         for (int N = 1; N <= MAX_RHS; N++){
             lda = M;
             ldb = M;
@@ -111,7 +108,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 Aref[idx] = (double*) hbw_malloc(sizeof(double) * M*M);
                 LAPACKE_dlarnv_work(IONE, ISEED, M*M, Aref[idx]);
                 for (int i = 0; i < M; i++)
-                    Aref[idx][i*M+i] +=1;
+                    Aref[idx][i*lda+i] += M;
 
                 // Generate B
                 Bp2p[idx] = (double*) hbw_malloc(sizeof(double) * M*N);
@@ -135,7 +132,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 #pragma omp parallel for
                 for (int idx = 0; idx < batch_count; idx++)
                 {
-                    LAPACKE_dposv(LAPACK_COL_MAJOR, uplo, M, N,
+                    LAPACKE_dposv(LAPACK_COL_MAJOR, 'L', M, N,
                                   Ap2p[idx], lda, Bp2p[idx], ldb);
                 }
       
@@ -148,7 +145,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
       
             //Copy the solution
             memcpy_bptp2ptp(Xp2p, Bp2p, M, N, batch_count);
-
+		
             //=============================================================
             // Compute with full interleave layout
             //=============================================================
@@ -158,23 +155,20 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 hbw_malloc(sizeof(double) * lda*M*batch_count);      
             arrayB = (double*)
                 hbw_malloc(sizeof(double) * ldb*N*batch_count);
-            work = (double*)
-                hbw_malloc(sizeof(double) * (M+N)*M*batch_count);
       
-            // Convert Ap2p to interleaved layout
-            memcpy_aptp2intl(arrayA, Ap2p, M, batch_count);
       
             // Calling full interleave kernel
             time_intl = 0;
             for (int testid = 0; testid < nbtest; testid++){
-                // Convert Bp2p to interleaved layout
-                memcpy_bptp2intl(arrayB, Bref, M, N, batch_count);
-                clearcache();
-                gettime();
-                timediff = time;
-                bblas_dtrsm_intl_expert(side, uplo, CblasTrans, diag,
-                                        M, N, alpha, (const double*)arrayA,
-                                        arrayB, batch_count, info);
+	      // Convert Ap2p to interleaved layout
+	      memcpy_aptp2intl(arrayA, Aref, M, batch_count);
+	      // Convert Bp2p to interleaved layout
+	      memcpy_bptp2intl(arrayB, Bref, M, N, batch_count);
+	      clearcache();
+	      gettime();
+	      timediff = time;
+	      bblas_dposv_intl_expert(CblasLower, M, N, arrayA,
+				      arrayB, batch_count, info);
                 gettime();
                 timediff = time - timediff;
                 if(testid != 0)time_intl += timediff;
@@ -183,26 +177,28 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
 
             // convert solution back
             memcpy_bintl2ptp(Bsol, arrayB, M, N, batch_count);
-
+            memcpy_aintl2ptp(Ap2p, arrayA, M, batch_count);
             //Performance computation
             perf_intl = flops / time_intl / 1000;
       
             // Copute forward error
             error_intl =  get_error(Xp2p, Bsol, M, N, batch_count);
-      
+
             //=============================================
             // Compute with full interleave + conversion
             //=============================================
-      
+	    work = (double*)
+	      hbw_malloc(sizeof(double) * (M+N)*M*batch_count);
             time_intl = 0;
             for (int testid = 0; testid < nbtest; testid++){
+	      // Copy Aref to Ap2p 
+	      memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
                 // Copy Bref to Bp2p 
                 memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
                 clearcache();
                 gettime();
                 timediff = time;
-                bblas_dtrsm_intl(side, uplo, CblasTrans, diag,
-                                 M, N, alpha, Ap2p, lda,
+                bblas_dposv_intl(uplo, M, N, Ap2p, lda,
                                  Bp2p, ldb,
                                  work, batch_count, info);
                 gettime();
@@ -243,25 +239,22 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                     hbw_malloc(sizeof(double) * M*N*BLOCK_SIZE*blocksrequired);
                 work = (double*) hbw_malloc(sizeof(double) * M*(N+M)*BLOCK_SIZE*blocksrequired);
       
-                // Convert Ap2p to  block interleaved layout
-                memcpy_aptp2blkintl(arrayAblk, Ap2p, M, BLOCK_SIZE, batch_count);
-	
-	
+		
                 //========================================================
                 // Calling block interleave kernel
                 //========================================================
 	
                 time_blkintl =0.0;
                 for (int testid = 0; testid < nbtest; testid++){
-                    memcpy_bptp2blkintl(arrayBblk, Bref, M, N, BLOCK_SIZE, batch_count);
-                    clearcache();
-                    gettime();
+                // Convert Ap2p to  block interleaved layout
+		  memcpy_aptp2blkintl(arrayAblk, Aref, M, BLOCK_SIZE, batch_count);
+		  memcpy_bptp2blkintl(arrayBblk, Bref, M, N, BLOCK_SIZE, batch_count);
+		  clearcache();
+		  gettime();
                     double timediff = time;
-                    bblas_dtrsm_blkintl_expert(
-                        side, uplo, CblasTrans, diag,
-                        M, N, alpha, (const double*) arrayAblk,
-                        arrayBblk, BLOCK_SIZE,
-                        batch_count, info);
+                    bblas_dposv_blkintl_expert(uplo, M, N, arrayAblk,
+					       arrayBblk, BLOCK_SIZE,
+					       batch_count, info);
                     gettime();
                     timediff = time - timediff;
                     if(testid != 0)time_blkintl += timediff;
@@ -284,36 +277,35 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 //==========================================
                 double time_blkintl =0.0;
                 for (int testid = 0; testid < nbtest; testid++){
+                    memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
                     memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
                     clearcache();    
                     gettime();
                     timediff = time;
-                    bblas_dtrsm_blkintl(
-                        side, uplo, CblasTrans, diag,
-                        M, N, alpha, Ap2p, lda, Bp2p, ldb,
-                        BLOCK_SIZE, work, batch_count, info);
+                    bblas_dposv_blkintl(uplo, M, N, Ap2p, lda, Bp2p, ldb,
+					BLOCK_SIZE, work, batch_count, info);
                     gettime();
                     timediff = time - timediff;
                     if(testid != 0) time_blkintl += timediff;
                 }
                 time_blkintl /= (nbtest-1);
-	
+		
                 //Set best time and best block (with internal conversion)
                 if ( time_blkintl < time_bestblkintl_conv ) {
-                    time_bestblkintl_conv = time_blkintl;
-                    best_block_conv = BLOCK_SIZE;
+		  time_bestblkintl_conv = time_blkintl;
+		  best_block_conv = BLOCK_SIZE;
                 }
                 hbw_free(arrayAblk);
                 hbw_free(arrayBblk);
                 hbw_free(work);
             }
-      
+	    
             perf_blkintl = flops / time_bestblkintl / 1000;
             perf_blkintl_conv = flops / time_bestblkintl_conv / 1000;
-      
+	    
             // Calculate difference between results
             double error_blkintl_conv =  get_error(Xp2p, Bp2p, M, N, batch_count);
-
+	    
             printf("%d,%d,%.2e,%.2e,%.2f,%.2e,%.2f,%.2e,%d,%.2f,%.2e,%d,%.2f,%.2e\n", M,N, perf_mkl, perf_intl, perf_intl/perf_mkl,
                    perf_intl_conv, perf_intl_conv/perf_mkl, perf_blkintl, best_block, perf_blkintl/perf_mkl,
                    perf_blkintl_conv, best_block_conv, perf_blkintl_conv/perf_mkl, error_blkintl_conv);   
@@ -325,6 +317,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             for (int idx = 0; idx < batch_count; idx++)
             {
                 hbw_free(Ap2p[idx]);
+                hbw_free(Aref[idx]);
                 hbw_free(Bp2p[idx]);
                 hbw_free(Bref[idx]);
                 hbw_free(Bsol[idx]);
@@ -334,6 +327,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
     }
   
     hbw_free(Ap2p);
+    hbw_free(Aref);
     hbw_free(Bp2p);
     hbw_free(Bref);
     hbw_free(Bsol);

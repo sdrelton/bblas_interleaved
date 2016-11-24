@@ -1,10 +1,11 @@
 #include "bblas_interleaved.h"
 #include<stdio.h>
+#include <math.h>
 #define COMPLEX
 
 // Assumes interleaved in column major order
 
-void bblas_posv_blkintl(enum BBLAS_UPLO uplo,
+void bblas_dposv_blkintl(enum BBLAS_UPLO uplo,
                         int m, int n, double **Ap2p, int lda,
                         double **Bp2p, int  ldb,
                         int block_size, double *work,
@@ -15,7 +16,7 @@ void bblas_posv_blkintl(enum BBLAS_UPLO uplo,
     //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
     
     int offset;
-    int alpha = 1.0;
+    double alpha = 1.0;
     //Block interleave variables
     double *arrayAblk = work;
     double *arrayBblk = (work+m*m*batch_count);

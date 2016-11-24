@@ -17,7 +17,7 @@ void bblas_dposv_intl(enum BBLAS_UPLO uplo,
   
     double *arrayA = work;
     double *arrayB = (work + m*m*batch_count);
-    int alpha = 1.0;
+    double alpha = 1.0;
     // Convert Ap2p to interleaved layout
     memcpy_aptp2intl(arrayA, Ap2p, lda, batch_count);
   

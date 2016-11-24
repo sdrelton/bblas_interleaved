@@ -7,6 +7,7 @@ BBLAS_SRC_LIST = bblas_dgemm_intl.c bblas_dgemm_intl_opt.c \
 		 bblas_dpotrf_blkintl_expert.c bblas_dpotrf_intl.c \
 		 bblas_dpotrf_intl_expert.c \
 		 bblas_dposv_intl_expert.c bblas_dposv_intl.c \
+		 bblas_dposv_blkintl_expert.c bblas_dposv_blkintl.c \
 
 
 BBLAS_SRC = $(addprefix $(BBLAS_SRC_DIR)/, $(BBLAS_SRC_LIST))
@@ -19,6 +20,10 @@ OBJECTS_DTRSM = $(SOURCES_DTRSM:.c=.o)
 #Create object files test_dpotrf binary 
 SOURCES_DPOTRF = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dpotrf.c 
 OBJECTS_DPOTRF = $(SOURCES_DPOTRF:.c=.o)
+
+#Create object files test_dpotrf binary 
+SOURCES_DPOSV = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dposv.c 
+OBJECTS_DPOSV = $(SOURCES_DPOSV:.c=.o)
 
 #Create object files for test_dgemm binary
 SOURCES_DGEMM = $(COMMON_SRC) $(BBLAS_TEST_DIR)/test_dgemm.c 
@@ -33,7 +38,7 @@ SOURCES_BLK = $(COMMON_SRC) $(BBLAS_TEST_DIR)/block_size_effect.c
 OBJECTS_BLK = $(SOURCES_BLK:.c=.o)
 
 all:
-	make test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf
+	make test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf test_dposv
 
 .DEFAULT_GOAL := all
 
@@ -52,10 +57,13 @@ test_dtrsm: $(OBJECTS_DTRSM)
 test_dpotrf: $(OBJECTS_DPOTRF)
 	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_DPOTRF) $(LDFLAGS) -o $@
 
+test_dposv: $(OBJECTS_DPOSV)
+	cd $(BBLAS_TEST_DIR); $(CC) $(OBJECTS_DPOSV) $(LDFLAGS) -o $@
+
 .c.o:
 	$(CC) -c $(CFLAGS) $(DEPS) $< -o $@ 
 
 .SILENT: clean
 clean:
 	-@rm $(BBLAS_SRC_DIR)/*.o $(BBLAS_SRC_DIR)/*~ 2>/dev/null || true
-	cd  $(BBLAS_TEST_DIR); @rm test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf *~ 2>/dev/null || true
+	cd  $(BBLAS_TEST_DIR); @rm test_dgemm tune_dgemm block_size_effect test_dtrsm test_dpotrf test_dposv *~ 2>/dev/null || true
