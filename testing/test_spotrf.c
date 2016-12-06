@@ -106,17 +106,6 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
         //Copy the solution
         memcpy_sbptp2ptp(Asol, Ap2p, N, N, batch_count);
 
-
-
-	    printf("L computed by MKL\n");
-	    for(int i = 0; i < N; i++) {
-            for (int j = 0; j <=i; j++ ) {
-                printf("%f\t", Ap2p[0][i+N*j]);
-            }
-            printf("\n");
-	    }
-
-
         //=============================================================
         // Compute with full interleave layout
         //=============================================================
@@ -149,16 +138,6 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
         // Copute forward error
         float error_intl =  get_serror(Asol, Ap2p, N, N, batch_count);
 
-
-	    printf("L computed by FULL\n");
-	    for(int i = 0; i < N; i++) {
-            for (int j = 0; j <=i; j++ ) {
-                printf("%f\t", Ap2p[0][i+N*j]);
-            }
-            printf("\n");
-	    }
-
-
         //=======================================================
         // Compute with full interleave with internal conversion
         //======================================================
@@ -185,16 +164,6 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
         float error_intl_conv =  get_serror(Asol, Ap2p, N, N, batch_count);
         //Free work
         hbw_free(work);
-
-	    printf("L computed by FULL INTL + CONV\n");
-	    for(int i = 0; i < N; i++) {
-            for (int j = 0; j <=i; j++ ) {
-                printf("%f\t", Ap2p[0][i+N*j]);
-            }
-            printf("\n");
-	    }
-
-
     
         float error_blkintl;
         float error_blkintl_conv;
@@ -247,16 +216,6 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             // Compute error
             error_blkintl =  get_serror(Ap2p, Asol, N, N, batch_count);
 
-            if (BLOCK_SIZE == 8) {
-                printf("L computed by BLK INTL \n");
-                for(int i = 0; i < N; i++) {
-                    for (int j = 0; j <=i; j++ ) {
-                        printf("%f\t", Ap2p[0][i+N*j]);
-                    }
-                    printf("\n");
-                }
-            }
-
             //===========================================
             //Block interleave with internal conversion
             //==========================================
@@ -274,30 +233,22 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             }
             time_blkintl /= (nbtest-1);
       
-            if (BLOCK_SIZE == 8) {
-                printf("L computed by BLK INTL + CONV\n");
-                for(int i = 0; i < N; i++) {
-                    for (int j = 0; j <=i; j++ ) {
-                        printf("%f\t", Ap2p[0][i+N*j]);
-                    }
-                    printf("\n");
-                }
-            }	  
+                
             //Set best time and best block (with internal conversion)
             if ( time_blkintl < time_bestblkintl_conv ) {
                 time_bestblkintl_conv = time_blkintl;
                 best_block_conv = BLOCK_SIZE;
             }
-
+                
             hbw_free(work);
         }
         perf_blkintl_conv = flops / time_bestblkintl_conv / 1000;
         error_blkintl_conv =  get_serror(Ap2p, Asol, N, N, batch_count);
-    
+            
         printf("%d,%.2e,%.2e,%.2f,%.2e,%.2f,%.2e,%d,%.2f,%.2e,%d,%.2f,%.2e\n", N, perf_mkl, perf_intl, perf_intl/perf_mkl,
                perf_intl_conv, perf_intl_conv/perf_mkl, perf_blkintl, best_block, perf_blkintl/perf_mkl,
                perf_blkintl_conv, best_block_conv, perf_blkintl_conv/perf_mkl, error_blkintl);   	
-      
+            
         // Hbw_Free memory
         hbw_free(arrayA);
         for (int idx = 0; idx < batch_count; idx++)
@@ -307,7 +258,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             hbw_free(Asol[idx]);
         }
     }
-
+ 
     hbw_free(Ap2p);
     hbw_free(Aref);
     hbw_free(Asol);
@@ -315,4 +266,4 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
     free(bigB);
     return 0;
 }
-
+    
