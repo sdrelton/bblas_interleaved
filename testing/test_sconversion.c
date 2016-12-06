@@ -5,7 +5,7 @@
 #include <math.h>
 
 
-void memcpy_dbptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_count){
+void memcpy_sbptp2intl(float *arrayB, float **Bp2p, int m, int n, int batch_count){
 
     for (int pos = 0; pos < m*n; pos++)
     {
@@ -19,7 +19,7 @@ void memcpy_dbptp2intl(double *arrayB, double **Bp2p, int m, int n, int batch_co
     }
   
 }
-void memcpy_dbptp2blkintl(double *arrayBblk, double **Bp2p, int m, int n, int block_size, int batch_count) {
+void memcpy_sbptp2blkintl(float *arrayBblk, float **Bp2p, int m, int n, int block_size, int batch_count) {
 
     int blocksrequired = batch_count / block_size;
     int remainder = 0;
@@ -59,7 +59,7 @@ void memcpy_dbptp2blkintl(double *arrayBblk, double **Bp2p, int m, int n, int bl
     }
 }
 
-void memcpy_daptp2intl(double *arrayA, double **Ap2p, int m, int batch_count) {
+void memcpy_saptp2intl(float *arrayA, float **Ap2p, int m, int batch_count) {
     int lda = m;
     for (int j = 0; j < m; j++) {
         for (int i = j; i < m; i++ ) {
@@ -75,7 +75,7 @@ void memcpy_daptp2intl(double *arrayA, double **Ap2p, int m, int batch_count) {
   
 }
 
-void memcpy_daintl2ptp(double **Ap2p, double *arrayA, int m, int batch_count) {
+void memcpy_saintl2ptp(float **Ap2p, float *arrayA, int m, int batch_count) {
     int lda = m;
     for (int j = 0; j < m; j++) {
         for (int i = j; i < m; i++ ) {
@@ -92,7 +92,7 @@ void memcpy_daintl2ptp(double **Ap2p, double *arrayA, int m, int batch_count) {
 }
 
 
-void memcpy_daptp2blkintl(double *arrayAblk, double **Ap2p, int n, int block_size, int batch_count) {
+void memcpy_saptp2blkintl(float *arrayAblk, float **Ap2p, int n, int block_size, int batch_count) {
     int lda = n;
     int startpos;
     int offset;
@@ -132,7 +132,7 @@ void memcpy_daptp2blkintl(double *arrayAblk, double **Ap2p, int n, int block_siz
     }
 }
 
-void memcpy_dablkintl2ptp(double **Ap2p, double *arrayAblk, int n, int block_size, int batch_count) {
+void memcpy_sablkintl2ptp(float **Ap2p, float *arrayAblk, int n, int block_size, int batch_count) {
     int lda = n;
     int startpos;
     int offset;
@@ -175,7 +175,7 @@ void memcpy_dablkintl2ptp(double **Ap2p, double *arrayAblk, int n, int block_siz
 
 
 
-void memcpy_dbintl2ptp(double **Bp2p, double *arrayB, int m, int n, int batch_count) {
+void memcpy_sbintl2ptp(float **Bp2p, float *arrayB, int m, int n, int batch_count) {
 
     for (int pos = 0; pos < m*n; pos++)
     {
@@ -190,7 +190,7 @@ void memcpy_dbintl2ptp(double **Bp2p, double *arrayB, int m, int n, int batch_co
 }
 
 
-void memcpy_dbblkintl2ptp(double **Bp2p, double *arrayBblk, int m, int n, int block_size, int batch_count) {
+void memcpy_sbblkintl2ptp(float **Bp2p, float *arrayBblk, int m, int n, int block_size, int batch_count) {
 
     int blocksrequired = batch_count / block_size;
     int remainder = 0;
@@ -225,18 +225,18 @@ void memcpy_dbblkintl2ptp(double **Bp2p, double *arrayBblk, int m, int n, int bl
     }  
 }
 
-void memcpy_dbptp2ptp(double **Bp2p, double **Bref, int m, int n, int batch_count) {
+void memcpy_sbptp2ptp(float **Bp2p, float **Bref, int m, int n, int batch_count) {
     for (int idx = 0; idx < batch_count; idx++)
     {
-        memcpy(Bp2p[idx], Bref[idx], sizeof(double)*m*n);      
+        memcpy(Bp2p[idx], Bref[idx], sizeof(float)*m*n);      
     }
 }
 
 
-double get_derror(double **Bref, double **Bsol, int m, int n, int batch_count) {
+float get_serror(float **Bref, float **Bsol, int m, int n, int batch_count) {
 
-    double error = 0.0;
-    double tmp_error;
+    float error = 0.0;
+    float tmp_error;
 
     for (int idx = 0; idx < batch_count; idx++) {
         tmp_error = 0.0;

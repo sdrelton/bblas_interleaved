@@ -123,8 +123,8 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             //=================================================
             time_mkl =0.0;
             for (int testid = 0; testid < nbtest; testid++){
-                memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
-                memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
+                memcpy_dbptp2ptp(Ap2p, Aref, M, M, batch_count);
+                memcpy_dbptp2ptp(Bp2p, Bref, M, N, batch_count);
                 clearcache();    
                 gettime();
                 timediff = time;
@@ -144,7 +144,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             perf_mkl = flops / time_mkl / 1000;
       
             //Copy the solution
-            memcpy_bptp2ptp(Xp2p, Bp2p, M, N, batch_count);
+            memcpy_dbptp2ptp(Xp2p, Bp2p, M, N, batch_count);
 		
             //=============================================================
             // Compute with full interleave layout
@@ -161,9 +161,9 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             time_intl = 0;
             for (int testid = 0; testid < nbtest; testid++){
 	      // Convert Ap2p to interleaved layout
-	      memcpy_aptp2intl(arrayA, Aref, M, batch_count);
+	      memcpy_daptp2intl(arrayA, Aref, M, batch_count);
 	      // Convert Bp2p to interleaved layout
-	      memcpy_bptp2intl(arrayB, Bref, M, N, batch_count);
+	      memcpy_dbptp2intl(arrayB, Bref, M, N, batch_count);
 	      clearcache();
 	      gettime();
 	      timediff = time;
@@ -176,13 +176,13 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             time_intl /= (nbtest-1);
 
             // convert solution back
-            memcpy_bintl2ptp(Bsol, arrayB, M, N, batch_count);
-            memcpy_aintl2ptp(Ap2p, arrayA, M, batch_count);
+            memcpy_dbintl2ptp(Bsol, arrayB, M, N, batch_count);
+            memcpy_daintl2ptp(Ap2p, arrayA, M, batch_count);
             //Performance computation
             perf_intl = flops / time_intl / 1000;
       
             // Copute forward error
-            error_intl =  get_error(Xp2p, Bsol, M, N, batch_count);
+            error_intl =  get_derror(Xp2p, Bsol, M, N, batch_count);
 
             //=============================================
             // Compute with full interleave + conversion
@@ -192,9 +192,9 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             time_intl = 0;
             for (int testid = 0; testid < nbtest; testid++){
 	      // Copy Aref to Ap2p 
-	      memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
+	      memcpy_dbptp2ptp(Ap2p, Aref, M, M, batch_count);
                 // Copy Bref to Bp2p 
-                memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
+                memcpy_dbptp2ptp(Bp2p, Bref, M, N, batch_count);
                 clearcache();
                 gettime();
                 timediff = time;
@@ -209,7 +209,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             perf_intl_conv = flops / time_intl / 1000;
       
             // Copute forward error
-            double error_intl_conv =  get_error(Xp2p, Bp2p, M, N, batch_count);
+            double error_intl_conv =  get_derror(Xp2p, Bp2p, M, N, batch_count);
 
             //Free work
             hbw_free(work);
@@ -247,8 +247,8 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 time_blkintl =0.0;
                 for (int testid = 0; testid < nbtest; testid++){
                 // Convert Ap2p to  block interleaved layout
-		  memcpy_aptp2blkintl(arrayAblk, Aref, M, BLOCK_SIZE, batch_count);
-		  memcpy_bptp2blkintl(arrayBblk, Bref, M, N, BLOCK_SIZE, batch_count);
+		  memcpy_daptp2blkintl(arrayAblk, Aref, M, BLOCK_SIZE, batch_count);
+		  memcpy_dbptp2blkintl(arrayBblk, Bref, M, N, BLOCK_SIZE, batch_count);
 		  clearcache();
 		  gettime();
                     double timediff = time;
@@ -262,7 +262,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                 time_blkintl /=(nbtest-1);
 	
                 // Convert  B block interleaved layout back to p2p layout
-                memcpy_bblkintl2ptp(Bsol, arrayBblk, M, N, BLOCK_SIZE, batch_count);
+                memcpy_dbblkintl2ptp(Bsol, arrayBblk, M, N, BLOCK_SIZE, batch_count);
 	
                 //Set best time and best block
                 if ( time_blkintl < time_bestblkintl ) {
@@ -270,15 +270,15 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
                     best_block = BLOCK_SIZE;
                 }
                 // Compute error
-                error_blkintl =  get_error(Xp2p, Bsol, M, N, batch_count);
+                error_blkintl =  get_derror(Xp2p, Bsol, M, N, batch_count);
 	
                 //===========================================
                 //Block interleave with internal conversion
                 //==========================================
                 double time_blkintl =0.0;
                 for (int testid = 0; testid < nbtest; testid++){
-                    memcpy_bptp2ptp(Ap2p, Aref, M, M, batch_count);
-                    memcpy_bptp2ptp(Bp2p, Bref, M, N, batch_count);
+                    memcpy_dbptp2ptp(Ap2p, Aref, M, M, batch_count);
+                    memcpy_dbptp2ptp(Bp2p, Bref, M, N, batch_count);
                     clearcache();    
                     gettime();
                     timediff = time;
@@ -304,7 +304,7 @@ ratio(mkl/(blkintl+conv)), error(intl)\n");
             perf_blkintl_conv = flops / time_bestblkintl_conv / 1000;
 	    
             // Calculate difference between results
-            double error_blkintl_conv =  get_error(Xp2p, Bp2p, M, N, batch_count);
+            double error_blkintl_conv =  get_derror(Xp2p, Bp2p, M, N, batch_count);
 	    
             printf("%d,%d,%.2e,%.2e,%.2f,%.2e,%.2f,%.2e,%d,%.2f,%.2e,%d,%.2f,%.2e\n", M,N, perf_mkl, perf_intl, perf_intl/perf_mkl,
                    perf_intl_conv, perf_intl_conv/perf_mkl, perf_blkintl, best_block, perf_blkintl/perf_mkl,

@@ -4,17 +4,17 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dtrsm_intl(
+void bblas_strsm_intl(
     enum BBLAS_SIDE  side,
     enum BBLAS_UPLO uplo,
     enum BBLAS_TRANS trans,
     enum BBLAS_DIAG diag,
     int m,
     int n,
-    double alpha,
-    const double **Ap2p, int lda,
-    double **Bp2p, int ldb,
-    double *work, int batch_count, int info)
+    float alpha,
+    const float **Ap2p, int lda,
+    float **Bp2p, int ldb,
+    float *work, int batch_count, int info)
 {
     // Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
@@ -22,16 +22,16 @@ void bblas_dtrsm_intl(
     // Note: arrayB(i,k,idx) = arrayB[k*strideA*M + i*strideA + idx]
   
 
-    double *arrayA = work;
-    double *arrayB = (work + m*m*batch_count);
+    float *arrayA = work;
+    float *arrayB = (work + m*m*batch_count);
     int strideB = batch_count;
     int strideA = batch_count;
 
     // Convert Ap2p to interleaved layout
-    memcpy_daptp2intl(arrayA, Ap2p, m, batch_count);
+    memcpy_saptp2intl(arrayA, Ap2p, m, batch_count);
   
     // Convert Bp2p to interleaved layout
-    memcpy_dbptp2intl(arrayB, Bp2p, m, n, batch_count);
+    memcpy_sbptp2intl(arrayB, Bp2p, m, n, batch_count);
   
     if ((side != BblasLeft)
         || (uplo != BblasLower)
@@ -89,7 +89,7 @@ void bblas_dtrsm_intl(
         }
     }
     // convert solution back
-    memcpy_dbintl2ptp(Bp2p, arrayB, m, n, batch_count);
+    memcpy_sbintl2ptp(Bp2p, arrayB, m, n, batch_count);
     info = BBLAS_SUCCESS;
 }
 

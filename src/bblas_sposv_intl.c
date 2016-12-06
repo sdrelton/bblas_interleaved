@@ -4,25 +4,25 @@
 
 // Assumes interleaved in column major order
 
-void bblas_dposv_intl(enum BBLAS_UPLO uplo,
+void bblas_sposv_intl(enum BBLAS_UPLO uplo,
                       int m, int n,
-                      double **Ap2p, int lda,
-                      double **Bp2p, int ldb,
-                      double *work, int batch_count, int info)
+                      float **Ap2p, int lda,
+                      float **Bp2p, int ldb,
+                      float *work, int batch_count, int info)
 {
 	// Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
     //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
 	// Note: arrayB(i,k,idx) = arrayB[k*batch_count*M + i*batch_count + idx]
   
-    double *arrayA = work;
-    double *arrayB = (work + m*m*batch_count);
-    double alpha = 1.0;
+    float *arrayA = work;
+    float *arrayB = (work + m*m*batch_count);
+    float alpha = 1.0;
     // Convert Ap2p to interleaved layout
-    memcpy_daptp2intl(arrayA, Ap2p, lda, batch_count);
+    memcpy_saptp2intl(arrayA, Ap2p, lda, batch_count);
   
     // Convert Bp2p to interleaved layout
-    memcpy_dbptp2intl(arrayB, Bp2p, ldb, n, batch_count);
+    memcpy_sbptp2intl(arrayB, Bp2p, ldb, n, batch_count);
 
 
     if (uplo != BblasLower) {
@@ -31,7 +31,7 @@ void bblas_dposv_intl(enum BBLAS_UPLO uplo,
     }
     
     //Compute the Cholesky factorization A = L*L'
-    bblas_dpotrf_intl_expert(CblasLower, m, arrayA,
+    bblas_spotrf_intl_expert(CblasLower, m, arrayA,
                              batch_count, info);
 
     //================================================
@@ -39,18 +39,18 @@ void bblas_dposv_intl(enum BBLAS_UPLO uplo,
     //================================================
 
     //Solve U'*X = B, overwriting B with X.
-    bblas_dtrsm_intl_expert(BblasLeft, uplo, CblasNoTrans, CblasNonUnit,
+    bblas_strsm_intl_expert(BblasLeft, uplo, CblasNoTrans, CblasNonUnit,
                             m, n, alpha, arrayA, arrayB,
                             batch_count, info);
 
     //Solve U*X = B, overwriting B with X.
-    bblas_dtrsm_intl_expert(BblasLeft, uplo, CblasTrans, CblasNonUnit,
+    bblas_strsm_intl_expert(BblasLeft, uplo, CblasTrans, CblasNonUnit,
                             m, n, alpha, arrayA, arrayB,
                             batch_count, info);
     // convert solution back
-    memcpy_dbintl2ptp(Bp2p, arrayB, m, n, batch_count);
+    memcpy_sbintl2ptp(Bp2p, arrayB, m, n, batch_count);
     // convert factorization back
-    memcpy_daintl2ptp(Ap2p, arrayA, n, batch_count);
+    memcpy_saintl2ptp(Ap2p, arrayA, n, batch_count);
     info = BBLAS_SUCCESS;
 }
 

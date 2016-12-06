@@ -3,18 +3,18 @@
 #include <math.h>
 // Assumes interleaved in column major order
 
-void bblas_dpotrf_intl(enum BBLAS_UPLO uplo, int n,
-                       double **Ap2p, int lda,
-                       double *work, int batch_count, int info)
+void bblas_spotrf_intl(enum BBLAS_UPLO uplo, int n,
+                       float **Ap2p, int lda,
+                       float *work, int batch_count, int info)
 {
     // Error checks go here
     // if UPLO = `L', aij is stored in A( i+(2*m-j-1)*j/2) for $j \leq i$.
     //if UPLO = `U', aij is stored in A(i+j*(j-1)/2) for $i \leq j$;
 
-    double *arrayA = work;
+    float *arrayA = work;
 
     // Convert Ap2p to interleaved layout
-    memcpy_daptp2intl(arrayA, Ap2p, n, batch_count);
+    memcpy_saptp2intl(arrayA, Ap2p, n, batch_count);
   
     if (uplo == BblasLower) {
         //Compute A(j,j) =  sqrt(A(j,j) -sum(A(j,i)*A(j,i))
@@ -50,6 +50,6 @@ void bblas_dpotrf_intl(enum BBLAS_UPLO uplo, int n,
         }
     }
     // convert solution back
-    memcpy_daintl2ptp(Ap2p, arrayA, n, batch_count);
+    memcpy_saintl2ptp(Ap2p, arrayA, n, batch_count);
 }
   
