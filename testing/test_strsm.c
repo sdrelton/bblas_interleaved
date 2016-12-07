@@ -9,11 +9,11 @@
 
 #define nbtest 10
 #define BATCH_COUNT 10000
-#define MAX_BLOCK_SIZE 512
+#define MAX_BLOCK_SIZE 720
 #define MAX_M 32
 #define MIN_M 2
 #define MAX_RHS 1
-#define CACHECLEARSIZE 10000000
+#define CACHECLEARSIZE 20000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
 
 
