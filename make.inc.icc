@@ -4,7 +4,7 @@ BBLAS_TEST_DIR = $(BBLAS_BASE_DIR)/testing
 BBLAS_INC_DIR = $(BBLAS_BASE_DIR)/include
 
 DEPS = -I$(BBLAS_BASE_DIR)/include -I$(BBLAS_TEST_DIR)
-LDFLAGS = -fopenmp -lmemkind
+LDFLAGS = -DMKL_DIRECT_CALL -fopenmp -lmemkind
 CC = icc
 CFLAGS = -c -std=c99 -DADD_ -fopenmp -O3 -xMIC-AVX512 -ftree-vectorize -mtune=native -fast -ipo
 DEPS += -m64 -I${MKLROOT}/include -I$(BBLAS_INC_DIR)
