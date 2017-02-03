@@ -154,9 +154,9 @@ void bblas_dposv_blkintl(enum BBLAS_UPLO uplo,
                 }
             }
             //Convert Ablk -> Ap2p
-            for (int j = 0; j < n; j++)
-                for (int i = j; i < n; i++) {
-                    offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
+            for (int j = 0; j < m; j++)
+                for (int i = j; i < m; i++) {
+                    offset = startposA + (j*(2*m-j-1)/2 + i)*block_size;
                     #pragma vector aligned
                     for (int idx = 0; idx < remainder; idx++) {
                         Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];
@@ -276,9 +276,9 @@ void bblas_dposv_blkintl(enum BBLAS_UPLO uplo,
                 }
             }
             //Convert Ablk -> Ap2p
-            for (int j = 0; j < n; j++)
-                for (int i = j; i < n; i++) {
-                    offset = startposA + (j*(2*n-j-1)/2 + i)*block_size;
+            for (int j = 0; j < m; j++)
+                for (int i = j; i < m; i++) {
+                    offset = startposA + (j*(2*m-j-1)/2 + i)*block_size;
                     #pragma vector aligned
                     for (int idx = 0; idx < remainder; idx++) {
                         Ap2p[blkidx * block_size + idx][j*lda+i] = arrayAblk[offset + idx];

@@ -10,9 +10,9 @@
 #include <mkl.h>
 
 #define nbtest 10
-#define BATCH_COUNT 10240
+#define BATCH_COUNT 20480
 #define MAX_BLOCK_SIZE 256
-#define MAX_M 32
+#define MAX_M 33
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
 
@@ -38,7 +38,6 @@ int main(int arc, char *argv[]) {
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
   
-    printf("Generating random matrices for computation\n");
     // Now create pointer-to-pointer batch of random matrices
     double **Ap2p =
         (double**) hbw_malloc(sizeof(double*)*BATCH_COUNT);
@@ -61,8 +60,8 @@ int main(int arc, char *argv[]) {
     int batch_count = BATCH_COUNT;
     int info = 0;
 
-    printf("M,K,N, perf_cblas, perf_batch_mkl, perf_blkintl, blocksize,\
- ratio(batch_mkl/blkintl), error(batch_mkl), error(blk)\n");
+    printf("M,K,N,perf_cblas,perf_batch_mkl,perf_blkintl,blocksize,\
+ ratio(batch_mkl/blkintl),error(batch_mkl),error(blk)\n");
 
     for (int M = 2; M < MAX_M; M++) {
         int K = M;
@@ -175,7 +174,7 @@ int main(int arc, char *argv[]) {
         }
         double perf_blkintl = flops / time_bestblkintl / 1000;
     
-        printf("%d, %d, %d, %.2e, %.2e, %.2e, %d, %.2f, %.2e, %.2e\n",
+        printf("%d,%d,%d,%.2e,%.2e,%.2e,%d,%.2f,%.2e,%.2e\n",
                M, K, N, perf_cblas, perf_mkl, perf_blkintl,
                best_block, perf_blkintl/perf_mkl, error_mkl, error_blkintl);
     

@@ -10,9 +10,10 @@
 #define nbtest 10
 #define BATCH_COUNT 10000
 #define MAX_BLOCK_SIZE 512
-#define MAX_M 32
+#define MAX_M 33
 #define MIN_M 2
-#define MAX_RHS 1
+#define MAX_RHS 4
+#define MIN_RHS 4
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
 
@@ -92,12 +93,12 @@ int main(int arc, char *argv[])
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
-    printf("M,N,perf(Cblas +OMP),perf(full intl), ratio(mkl/intl), perf(intl+conv), ratio(mkl/intl+conv) perf(blkintl),\
-bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,\
-ratio(mkl/(blkintl+conv)), error(intl)\n");
+    printf("M,N,perf_cblas,perf_fintl,ratio(mkl/intl),perf(intl+conv),ratio(mkl/intl+conv),perf_blkintl,\
+bsize,ratio(mkl/blkintl),perf_blkintl_conv,bsize_conv,\
+ratio(mkl/(blkintl+conv)),error(intl)\n");
 
     for (int M = MIN_M; M <= MAX_M ; M++){
-        for (int N = 1; N <= MAX_RHS; N++){
+        for (int N = MIN_RHS; N <= MAX_RHS; N++){
             lda = M;
             ldb = M;
             flops = 1.0 * (N*M*M)*BATCH_COUNT;

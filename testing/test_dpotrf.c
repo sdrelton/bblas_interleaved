@@ -10,9 +10,9 @@
 #include <hbwmalloc.h>
 
 #define nbtest 10
-#define BATCH_COUNT 10000
+#define BATCH_COUNT 20000
 #define MAX_BLOCK_SIZE 256
-#define MAX_M 32
+#define MAX_M 33
 #define MAX_RHS 1
 #define CACHECLEARSIZE 10000000
 #define clearcache() cblas_ddot(CACHECLEARSIZE, bigA, 1, bigB, 1)
@@ -63,9 +63,9 @@ int main(int arc, char *argv[])
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigA);
     LAPACKE_dlarnv_work(IONE, ISEED, bigsize, bigB);
 
-    printf("N,perf(LAPACK +OMP),perf(full intl), ratio(mkl/intl), perf(intl+conv), ratio(mkl/intl+conv) perf(blkintl),\
-bsize, ratio(mkl/blkintl), perf(blkintl+conv), bsize+conv,		\
-ratio(mkl/(blkintl+conv)), error(intl)\n");
+    printf("N,perf_lapack,perf(full intl),ratio(mkl/intl),perf(intl+conv),ratio(mkl/intl+conv),perf(blkintl),\
+bsize, ratio(mkl/blkintl),perf_blkintl_conv,bsize_conv,\
+ratio(mkl/(blkintl+conv)),error(intl)\n");
   
     for (int N = 2; N < 33; N++){
         lda = N;
